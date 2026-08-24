@@ -262,6 +262,22 @@ class FloatingWidgetService : Service() {
 
             attachDragHandler(bubble, params)
 
+            // Close handlers — Apple-style ×
+            view.findViewById<View>(R.id.closeBtn)?.setOnClickListener {
+                try { pulseAnimator?.cancel(); bobAnimator?.cancel() } catch(_: Exception) {}
+                try { windowManager?.removeViewImmediate(view) } catch(_: Exception) {}
+                floatView = null
+                stopSelf()
+            }
+            view.findViewById<View>(R.id.floatCloseCardBtn)?.setOnClickListener {
+                view.findViewById<View>(R.id.floatResultCard)?.let { c ->
+                    c.animate().alpha(0f).translationY(12f).setDuration(180).withEndAction { c.visibility = View.GONE }.start()
+                }
+            }
+            view.findViewById<View>(R.id.floatDismissBtn)?.setOnClickListener {
+                view.findViewById<View>(R.id.floatResultCard)?.visibility = View.GONE
+            }
+
             windowManager?.addView(view, params)
             floatView = view
             layoutParams = params

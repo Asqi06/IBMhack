@@ -396,6 +396,78 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
+        <!-- Activity Log — iOS grouped -->
+        <TextView
+            android:text="ACTIVITY LOG"
+            android:textSize="12sp"
+            android:textColor="@color/ios_gray"
+            android:letterSpacing="0.06"
+            android:padding="16dp"
+            android:paddingBottom="6dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0.5dp"
+            app:strokeColor="@color/ios_separator">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:text="Recent scans — high/medium are logged"
+                        android:textSize="12sp"
+                        android:textColor="@color/ios_label"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:id="@+id/clearLogBtn"
+                        android:text="Clear"
+                        android:textSize="12sp"
+                        android:textColor="@color/ios_blue"
+                        android:padding="6dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/logRecycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="80dp"/>
+
+                <TextView
+                    android:id="@+id/logEmpty"
+                    android:text="No dangerous messages yet — scans that are high/medium will appear here with Delete/Block advise."
+                    android:textSize="11sp"
+                    android:textColor="#8E8E93"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:visibility="gone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <TextView
             android:text="Privacy • Screenshots never leave device. Only text → Granite. No audio, no READ_SMS. Ledger: number/URL + category + timestamp only.  — Apple-inspired UI"
             android:textSize="11sp"

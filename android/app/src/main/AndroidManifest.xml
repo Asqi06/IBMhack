@@ -39,6 +39,29 @@
             android:exported="false"
             android:foregroundServiceType="mediaProjection|dataSync" />
 
+        <service
+            android:name=".WhatsAppListenerService"
+            android:label="ScamShield WhatsApp Guard"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name=".LinkInterceptorActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ScamShield">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+            </intent-filter>
+        </activity>
+
         <!-- Home-screen App Widget (companion to floating bubble MVP) -->
         <receiver
             android:name=".ScamShieldWidgetProvider"

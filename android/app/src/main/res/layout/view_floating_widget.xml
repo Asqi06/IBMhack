@@ -13,49 +13,71 @@
         android:background="@drawable/pulse_ring"
         android:alpha="0.35"/>
 
-    <!-- Apple AssistiveTouch-style bubble -->
-    <LinearLayout
-        android:orientation="vertical"
-        android:gravity="center"
+    <!-- Apple AssistiveTouch-style bubble with close -->
+    <FrameLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_gravity="center">
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/bubble"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:elevation="8dp"
-            app:cardCornerRadius="30dp"
-            app:cardBackgroundColor="#FFFFFF"
-            app:strokeWidth="0.5dp"
-            app:strokeColor="#E5E5EA">
+        <LinearLayout
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
 
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/ios_bubble_bg">
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/bubble"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:elevation="8dp"
+                app:cardCornerRadius="30dp"
+                app:cardBackgroundColor="#FFFFFF"
+                app:strokeWidth="0.5dp"
+                app:strokeColor="#E5E5EA">
 
-                <TextView
+                <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="◈"
-                    android:textSize="24sp"
-                    android:textColor="#007AFF"
-                    android:fontFamily="sans-serif-medium"/>
-            </FrameLayout>
-        </com.google.android.material.card.MaterialCardView>
+                    android:background="@drawable/ios_bubble_bg">
 
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="◈"
+                        android:textSize="24sp"
+                        android:textColor="#007AFF"
+                        android:fontFamily="sans-serif-medium"/>
+                </FrameLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SCAN"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:textColor="#8E8E93"
+                android:layout_marginTop="6dp"/>
+        </LinearLayout>
+
+        <!-- Close button — Apple-style -->
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="SCAN"
-            android:textSize="9sp"
+            android:id="@+id/closeBtn"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="top|end"
+            android:background="#FF3B30"
+            android:gravity="center"
+            android:text="×"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
             android:textStyle="bold"
-            android:letterSpacing="0.08"
-            android:textColor="#8E8E93"
-            android:layout_marginTop="6dp"/>
-    </LinearLayout>
+            android:elevation="4dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="2dp"/>
+    </FrameLayout>
 
     <!-- iOS grouped result card -->
     <com.google.android.material.card.MaterialCardView
@@ -114,6 +136,16 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"/>
                 </LinearLayout>
+
+                <TextView
+                    android:id="@+id/floatCloseCardBtn"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="#F2F2F7"
+                    android:gravity="center"
+                    android:text="×"
+                    android:textSize="16sp"
+                    android:textColor="#8E8E93"/>
             </LinearLayout>
 
             <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="#E5E5EA"/>
@@ -154,6 +186,17 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:visibility="gone"/>
+
+                <TextView
+                    android:id="@+id/floatDismissBtn"
+                    android:text="Dismiss"
+                    android:textSize="13sp"
+                    android:textColor="#8E8E93"
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

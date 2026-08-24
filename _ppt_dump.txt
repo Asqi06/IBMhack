@@ -1,0 +1,441 @@
+==========================================================================================
+SLIDE 0 | layout: SECTION_HEADER
+  SHAPE name='Title 1' type=PLACEHOLDER (14) ph=TITLE (1) pos=(0.91,1.87,11.50,3.12)
+     P0 lvl=0 align=CENTER (2)
+        R0 font=None sz=66.0 b=True i=None col=None TEXT='IBM University Engagement Project Submission'
+  SHAPE name='Text Placeholder 2' type=PLACEHOLDER (14) ph=BODY (2) pos=(1.11,4.27,11.50,1.64)
+     P0 lvl=0 align=CENTER (2)
+        R0 font=None sz=None b=True i=True col=None TEXT='“Exploring the Power of Agentic AI with IBM Granite and '
+        R1 font=None sz=None b=True i=True col=None TEXT='LangFlow'
+        R2 font=None sz=None b=True i=True col=None TEXT='”'
+==========================================================================================
+SLIDE 1 | layout: OBJECT
+  SHAPE name='Google Shape;92;p2' type=AUTO_SHAPE (1) ph=None pos=(0.76,4.84,11.81,0.22)
+     P0 lvl=0 align=LEFT (1)
+  SHAPE name='Google Shape;95;p2' type=TEXT_BOX (17) ph=None pos=(1.21,1.28,8.12,0.49)
+     P0 lvl=0 align=CENTER (2)
+  SHAPE name='Google Shape;96;p2' type=TABLE (19) ph=None pos=(1.42,2.84,10.27,2.37)
+     TABLE 2x4
+        ROW0 ['Student Name', 'Recent Passport Photo', 'Email ID ', 'Mobile number\n[WhatsApp] ']
+        ROW1 ['', '', '', '']
+  SHAPE name='Google Shape;98;p2' type=PICTURE (13) ph=None pos=(4.43,4.09,0.83,0.88)
+  SHAPE name='TextBox 3' type=TEXT_BOX (17) ph=None pos=(1.32,1.60,11.24,0.50)
+     P0 lvl=0 align=None
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Domain of  Project – '
+        R1 font=None sz=24.0 b=True i=None col=None TEXT='[ like Agriculture / Education / Healthcare / … ]'
+  SHAPE name='TextBox 6' type=TEXT_BOX (17) ph=None pos=(1.32,0.60,10.48,0.50)
+     P0 lvl=0 align=None
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Project Tile – '
+        R1 font=None sz=24.0 b=True i=None col=None TEXT='['
+        R2 font='Times New Roman' sz=24.0 b=True i=None col=002060 TEXT='Write your project title here'
+        R3 font=None sz=24.0 b=True i=None col=None TEXT=']'
+  SHAPE name='TextBox 2' type=TEXT_BOX (17) ph=None pos=(1.32,5.70,7.06,1.78)
+     P0 lvl=0 align=None
+        R0 font=None sz=20.0 b=None i=None col=FF0000 TEXT='Recommended font style and size:'
+        R1 font=None sz=20.0 b=None i=None col=FF0000 TEXT='Font Style: Arial'
+        R2 font=None sz=20.0 b=None i=None col=FF0000 TEXT='Font Size (Heading): 28'
+     P1 lvl=0 align=None
+        R0 font=None sz=20.0 b=None i=None col=FF0000 TEXT='Font Size (Content): 20'
+==========================================================================================
+SLIDE 2 | layout: OBJECT
+  SHAPE name='TextBox 1' type=TEXT_BOX (17) ph=None pos=(0.63,1.35,11.60,5.52)
+     P0 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Problem Statement : Nutrition Agent'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0'
+     P1 lvl=0 align=None
+     P2 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='The Challenge'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0'
+     P3 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='Good nutrition is the foundation of health, but individuals often struggle with\xa0'
+        R1 font=None sz=None b=True i=None col=None TEXT='diet planning,\xa0portion\xa0control, and tracking nutritional intake'
+        R2 font=None sz=None b=None i=None col=None TEXT='. Information about healthy diets, disease-specific nutrition, and food composition is scattered across unreliable sources. Without\xa0'
+        R3 font=None sz=None b=True i=None col=None TEXT='personalized, real-time guidance'
+        R4 font=None sz=None b=None i=None col=None TEXT=', many\xa0fail to\xa0maintain\xa0balanced diets or make informed food choices.\xa0'
+     P4 lvl=0 align=None
+     P5 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='The Objective'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0'
+     P6 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='Build an\xa0'
+        R1 font=None sz=None b=True i=None col=None TEXT='AI-powered Nutrition Agent'
+        R2 font=None sz=None b=None i=None col=None TEXT='\xa0that delivers\xa0'
+        R3 font=None sz=None b=True i=None col=None TEXT='personalized dietary insights and guidance'
+        R4 font=None sz=None b=None i=None col=None TEXT='\xa0for individuals, families, and health professionals. The solution should:\xa0'
+     P7 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Personalized Diet Plans'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0– Recommend meals based on age, health conditions, allergies, cultural preferences, and fitness goals.\xa0'
+     P8 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Food Data RAG Retrieval'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0– Fetch and summarize nutritional values (calories, macros, vitamins) from reliable sources.\xa0'
+     P9 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Diet Tracking & Feedback'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0– Allow users to log meals via text, images, or voice, and provide instant nutritional analysis.\xa0'
+     P10 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Preventive Health Focus'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0– Suggest diets for chronic disease management (e.g., diabetes-friendly\xa0or heart-healthy plans).\xa0'
+     P11 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Multi-Agent System'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0–\xa0'
+     P12 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Nutrition Knowledge Agent'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0(fetches nutritional data)\xa0'
+     P13 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Diet Recommendation Agent'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0(personalized meal plans)\xa0'
+     P14 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Health Advisory Agent'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0(preventive health suggestions)\xa0'
+     P15 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Food Log & Feedback Agent'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0(meal tracking + analysis)\xa0'
+     P16 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Visualization Dashboard'
+        R1 font=None sz=None b=None i=None col=None TEXT='\xa0– Show daily/weekly nutrient intake, deficiencies, and progress toward health goals.\xa0'
+     P17 lvl=0 align=None
+     P18 lvl=0 align=None
+  SHAPE name='TextBox 2' type=TEXT_BOX (17) ph=None pos=(0.63,0.77,7.89,0.50)
+     P0 lvl=0 align=None
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Problem Statement -'
+==========================================================================================
+SLIDE 3 | layout: OBJECT
+  SHAPE name='TextBox 1' type=TEXT_BOX (17) ph=None pos=(0.63,1.35,11.60,5.76)
+     P0 lvl=0 align=None
+     P1 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Proposed Solution: AI-Powered Nutrition Agent'
+     P2 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='The proposed solution is a '
+        R1 font=None sz=None b=True i=None col=None TEXT='multi-agent AI-powered Nutrition Agent'
+        R2 font=None sz=None b=None i=None col=None TEXT=' built using '
+        R3 font=None sz=None b=True i=None col=None TEXT='LangFlow'
+        R4 font=None sz=None b=True i=None col=None TEXT=', IBM watsonx.ai, and Granite Models'
+        R5 font=None sz=None b=None i=None col=None TEXT=' to provide personalized, real-time dietary guidance. The system addresses challenges in diet planning, nutrition tracking, and preventive healthcare through an intelligent, modular architecture.'
+     P3 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='At its core, the solution uses a '
+        R1 font=None sz=None b=True i=None col=None TEXT='Retrieval-Augmented Generation (RAG)'
+        R2 font=None sz=None b=None i=None col=None TEXT=' pipeline to fetch accurate nutritional data from trusted sources such as USDA and WHO datasets. This data is embedded and stored in a vector database, enabling the system to retrieve and summarize food nutrition details (calories, macros, vitamins) using Granite models.'
+     P4 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='The system consists of four key agents:'
+     P5 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Nutrition Knowledge Agent'
+        R1 font=None sz=None b=None i=None col=None TEXT=' retrieves and summarizes nutritional information using RAG. '
+     P6 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Diet Recommendation Agent'
+        R1 font=None sz=None b=None i=None col=None TEXT=' generates personalized meal plans based on user inputs such as age, health conditions, dietary preferences, and fitness goals. '
+     P7 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Health Advisory Agent'
+        R1 font=None sz=None b=None i=None col=None TEXT=' provides preventive health suggestions, including disease-specific diets (e.g., diabetes-friendly or heart-healthy plans). '
+     P8 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Food Log & Feedback Agent'
+        R1 font=None sz=None b=None i=None col=None TEXT=' allows users to log meals via text, voice, or images and delivers instant nutritional analysis with actionable feedback. '
+     P9 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='The solution includes a '
+        R1 font=None sz=None b=True i=None col=None TEXT='user-friendly dashboard'
+        R2 font=None sz=None b=None i=None col=None TEXT=' (built with '
+        R3 font=None sz=None b=None i=None col=None TEXT='Streamlit'
+        R4 font=None sz=None b=None i=None col=None TEXT=' or React) that visualizes daily and weekly nutrient intake, highlights deficiencies, and tracks progress toward health goals.'
+     P10 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='LangFlow'
+        R1 font=None sz=None b=None i=None col=None TEXT=' is used to orchestrate agent workflows, while watsonx.ai ensures scalable model deployment, embeddings, and AI governance. Granite models power reasoning, summarization, and personalization.'
+     P11 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='Overall, this solution delivers an '
+        R1 font=None sz=None b=True i=None col=None TEXT='end-to-end intelligent nutrition assistant'
+        R2 font=None sz=None b=None i=None col=None TEXT=' that promotes healthier lifestyles through personalized insights, real-time feedback, and preventive healthcare recommendations.'
+     P12 lvl=0 align=None
+     P13 lvl=0 align=None
+  SHAPE name='TextBox 2' type=TEXT_BOX (17) ph=None pos=(0.63,0.77,7.89,0.50)
+     P0 lvl=0 align=None
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Proposed Solution -'
+==========================================================================================
+SLIDE 4 | layout: OBJECT
+  SHAPE name='TextBox 1' type=TEXT_BOX (17) ph=None pos=(0.85,0.53,7.79,0.50)
+     P0 lvl=0 align=None
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Technology Used'
+  SHAPE name='TextBox 2' type=TEXT_BOX (17) ph=None pos=(0.85,1.32,11.50,6.02)
+     P0 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='Langflow'
+        R1 font=None sz=18.0 b=True i=None col=None TEXT=' platform '
+        R2 font=None sz=18.0 b=None i=None col=None TEXT='-For designing and orchestrating multi-agent workflows visually'
+     P1 lvl=0 align=None
+     P2 lvl=0 align=None
+     P3 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='IBM Granite model '
+        R1 font=None sz=18.0 b=None i=None col=None TEXT='-  for '
+        R2 font=None sz=18.0 b=None i=None col=None TEXT='eg'
+        R3 font=None sz=18.0 b=None i=None col=None TEXT=' – ibm-granite-3-2-8b – For natural language understanding, reasoning, and personalization'
+     P4 lvl=0 align=None
+     P5 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='IBM Cloud '
+        R1 font=None sz=18.0 b=None i=None col=None TEXT='– It provides the infrastructure to build, deploy, and scale the Nutrition Agent efficiently. IBM Cloud enables a '
+        R2 font=None sz=18.0 b=True i=None col=None TEXT='reliable, secure, and scalable environment'
+        R3 font=None sz=18.0 b=None i=None col=None TEXT=' for deploying the Nutrition Agent.'
+     P6 lvl=0 align=None
+     P7 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='RAG– '
+        R1 font=None sz=18.0 b=None i=None col=None TEXT='RAG to '
+        R2 font=None sz=18.0 b=True i=None col=None TEXT='fetch real data first, then generate intelligent answers'
+        R3 font=None sz=18.0 b=None i=None col=None TEXT=', making the Nutrition Agent more trustworthy and effective.'
+     P8 lvl=0 align=None
+     P9 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='IBM Watsonx.ai - '
+        R1 font=None sz=18.0 b=None i=None col=None TEXT='For model deployment, embeddings, and AI governance'
+     P10 lvl=0 align=None
+     P11 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='Vector Database '
+        R1 font=None sz=18.0 b=None i=None col=None TEXT='(FAISS/Chroma) – For RAG-based nutritional data retrieval'
+     P12 lvl=0 align=None
+     P13 lvl=0 align=None
+     P14 lvl=0 align=None
+     P15 lvl=0 align=None
+==========================================================================================
+SLIDE 5 | layout: OBJECT
+  SHAPE name='Google Shape;135;p5' type=AUTO_SHAPE (1) ph=None pos=(0.59,0.35,6.46,0.49)
+     P0 lvl=0 align=LEFT (1)
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Langflow'
+        R1 font='Times New Roman' sz=35.0 b=True i=False col=051D3A TEXT=' '
+        R2 font=None sz=24.0 b=True i=None col=None TEXT='component Used -'
+  SHAPE name='Google Shape;148;p5' type=AUTO_SHAPE (1) ph=None pos=(2.48,7.42,2.34,0.25)
+     P0 lvl=0 align=CENTER (2)
+  SHAPE name='Google Shape;149;p5' type=AUTO_SHAPE (1) ph=None pos=(1.95,7.76,3.39,0.80)
+     P0 lvl=0 align=CENTER (2)
+  SHAPE name='Google Shape;150;p5' type=AUTO_SHAPE (1) ph=None pos=(6.27,7.42,1.96,0.25)
+     P0 lvl=0 align=CENTER (2)
+  SHAPE name='Google Shape;151;p5' type=AUTO_SHAPE (1) ph=None pos=(5.55,7.76,3.39,0.80)
+     P0 lvl=0 align=CENTER (2)
+  SHAPE name='Google Shape;152;p5' type=AUTO_SHAPE (1) ph=None pos=(9.87,7.42,1.96,0.25)
+     P0 lvl=0 align=CENTER (2)
+  SHAPE name='Google Shape;153;p5' type=AUTO_SHAPE (1) ph=None pos=(9.16,7.76,3.39,0.80)
+     P0 lvl=0 align=CENTER (2)
+  SHAPE name='TextBox 1' type=TEXT_BOX (17) ph=None pos=(0.52,0.94,9.65,5.76)
+     P0 lvl=0 align=None
+     P1 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='1) Chat Input '
+        R1 font=None sz=None b=None i=None col=None TEXT='– Interface where users enter their queries, preferences, or meal details (text/voice/image).'
+     P2 lvl=0 align=None
+     P3 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='2) IBM '
+        R1 font=None sz=None b=True i=None col=None TEXT='watsonx'
+        R2 font=None sz=None b=True i=None col=None TEXT=' AI Agent '
+        R3 font=None sz=None b=None i=None col=None TEXT='- Processes user input using Granite models to generate personalized nutrition insights and recommendations. '
+     P4 lvl=0 align=None
+     P5 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='3) Name of IBM Granite model - '
+        R1 font=None sz=None b=None i=None col=None TEXT='Granite-4.0-8B-Instruct → Fast, efficient for real-time diet recommendations'
+     P6 lvl=0 align=None
+     P7 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='4) Chat output -'
+        R1 font=None sz=None b=None i=None col=None TEXT='Displays AI-generated responses such as diet plans, nutritional analysis, and health suggestions. '
+     P8 lvl=0 align=None
+     P9 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='5) '
+        R1 font=None sz=None b=True i=None col=None TEXT='File component - '
+        R2 font=None sz=None b=None i=None col=None TEXT='Stores and retrieves user data, meal logs, and nutritional datasets for analysis and tracking.'
+     P10 lvl=0 align=None
+     P11 lvl=0 align=None
+     P12 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='6) '
+        R1 font=None sz=None b=None i=None col=None TEXT='Add name of any other component used.'
+     P13 lvl=0 align=None
+     P14 lvl=0 align=None
+     P15 lvl=0 align=None
+     P16 lvl=0 align=None
+     P17 lvl=0 align=None
+     P18 lvl=0 align=None
+     P19 lvl=0 align=None
+     P20 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT=' '
+==========================================================================================
+SLIDE 6 | layout: OBJECT
+  SHAPE name='Google Shape;135;p5' type=AUTO_SHAPE (1) ph=None pos=(0.59,0.35,6.46,0.49)
+     P0 lvl=0 align=LEFT (1)
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Langflow'
+        R1 font='Times New Roman' sz=35.0 b=True i=False col=051D3A TEXT=' '
+        R2 font=None sz=24.0 b=True i=None col=None TEXT='workflow -'
+  SHAPE name='Picture 3' type=PICTURE (13) ph=None pos=(0.59,1.25,12.54,6.02)
+==========================================================================================
+SLIDE 7 | layout: OBJECT
+  SHAPE name='Google Shape;135;p5' type=AUTO_SHAPE (1) ph=None pos=(0.59,0.35,6.46,0.49)
+     P0 lvl=0 align=None
+        R0 font='Calibri' sz=24.0 b=True i=None col=theme:DARK_1 (1) TEXT='Architecture blueprint'
+  SHAPE name='Picture 2' type=PICTURE (13) ph=None pos=(0.59,0.74,12.54,6.76)
+==========================================================================================
+SLIDE 8 | layout: OBJECT
+  SHAPE name='Google Shape;196;p9' type=PICTURE (13) ph=None pos=(9.16,1.28,3.30,4.95)
+  SHAPE name='TextBox 1' type=TEXT_BOX (17) ph=None pos=(0.52,0.31,10.19,0.64)
+     P0 lvl=0 align=None
+        R0 font=None sz=32.0 b=True i=None col=None TEXT='Role of Agentic AI in the solution '
+  SHAPE name='TextBox 2' type=TEXT_BOX (17) ph=None pos=(0.68,1.28,8.10,3.40)
+     P0 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Role of Agentic AI in Nutrition Agent'
+     P1 lvl=0 align=None
+        R0 font=None sz=None b=True i=None col=None TEXT='Agentic AI'
+        R1 font=None sz=None b=None i=None col=None TEXT=' enables the Nutrition Agent to function as an intelligent, autonomous system rather than a simple chatbot. Using '
+        R2 font=None sz=None b=True i=None col=None TEXT='IBM watsonx.ai'
+        R3 font=None sz=None b=None i=None col=None TEXT=' and '
+        R4 font=None sz=None b=True i=None col=None TEXT='IBM Granite models'
+        R5 font=None sz=None b=None i=None col=None TEXT=', it coordinates multiple specialized agents to deliver personalized nutrition guidance.'
+     P2 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='Each agent performs a specific role—such as retrieving nutritional data, generating diet plans, providing health advice, and analyzing food logs—while working collaboratively. This '
+        R1 font=None sz=None b=True i=None col=None TEXT='multi-agent approach'
+        R2 font=None sz=None b=None i=None col=None TEXT=' ensures efficient task execution and accurate results.'
+     P3 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='Agentic AI also brings '
+        R1 font=None sz=None b=True i=None col=None TEXT='context awareness'
+        R2 font=None sz=None b=None i=None col=None TEXT=', understanding user details like age, health conditions, and fitness goals to generate tailored recommendations. It supports '
+        R3 font=None sz=None b=True i=None col=None TEXT='real-time adaptation'
+        R4 font=None sz=None b=None i=None col=None TEXT=', continuously updating suggestions based on user inputs like daily meals.'
+     P4 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='Additionally, agents communicate with each other, enabling better decision-making and improved outcomes.'
+     P5 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='Overall, Agentic AI makes the system proactive, personalized, and goal-driven, acting like a '
+        R1 font=None sz=None b=True i=None col=None TEXT='smart digital nutritionist'
+        R2 font=None sz=None b=None i=None col=None TEXT=' that helps users maintain a healthy lifestyle.'
+==========================================================================================
+SLIDE 9 | layout: OBJECT
+  SHAPE name='Google Shape;278;p18' type=AUTO_SHAPE (1) ph=None pos=(0.87,0.37,7.05,0.77)
+     P0 lvl=0 align=None
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Token Usage\xa0'
+  SHAPE name='Google Shape;280;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,3.67,8.17,0.84)
+     P0 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='·'
+  SHAPE name='Google Shape;281;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,4.81,8.17,0.84)
+     P0 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='·'
+  SHAPE name='Google Shape;282;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,5.94,8.17,0.42)
+     P0 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='·'
+  SHAPE name='TextBox 4' type=TEXT_BOX (17) ph=None pos=(0.98,1.14,4.78,0.34)
+     P0 lvl=0 align=None
+        R0 font=None sz=None b=None i=None col=None TEXT='11,761 token are used'
+  SHAPE name='Picture 11' type=PICTURE (13) ph=None pos=(0.12,2.68,5.57,3.12)
+  SHAPE name='Picture 12' type=PICTURE (13) ph=None pos=(6.74,2.68,6.26,3.12)
+  SHAPE name='TextBox 13' type=TEXT_BOX (17) ph=None pos=(1.40,1.88,3.00,0.44)
+     P0 lvl=0 align=None
+        R0 font=None sz=20.0 b=None i=None col=None TEXT='Before Prompt'
+  SHAPE name='TextBox 14' type=TEXT_BOX (17) ph=None pos=(7.77,1.88,3.00,0.44)
+     P0 lvl=0 align=None
+        R0 font=None sz=20.0 b=None i=None col=None TEXT='After the Prompt'
+==========================================================================================
+SLIDE 10 | layout: OBJECT
+  SHAPE name='TextBox 1' type=TEXT_BOX (17) ph=None pos=(0.85,0.53,7.79,0.50)
+     P0 lvl=0 align=None
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Novelty and Uniqueness'
+  SHAPE name='TextBox 2' type=TEXT_BOX (17) ph=None pos=(0.85,1.32,12.36,5.79)
+     P0 lvl=0 align=None
+        R0 font=None sz=18.0 b=None i=None col=None TEXT='The proposed Nutrition Agent stands out by combining '
+        R1 font=None sz=18.0 b=True i=None col=None TEXT='Agentic AI, RAG, and personalization'
+        R2 font=None sz=18.0 b=None i=None col=None TEXT=' into a single intelligent system.'
+     P1 lvl=0 align=None
+     P2 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='Multi-Agent Intelligence'
+        R1 font=None sz=18.0 b=None i=None col=None TEXT=' – Instead of a single chatbot, multiple specialized agents collaborate to deliver accurate and context-aware nutrition guidance. '
+     P3 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='RAG-Based Accuracy'
+        R1 font=None sz=18.0 b=None i=None col=None TEXT=' – Integrates real-time data retrieval with AI generation, reducing misinformation and ensuring trustworthy recommendations. '
+     P4 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='Hyper-Personalization'
+        R1 font=None sz=18.0 b=None i=None col=None TEXT=' – Tailors diet plans based on health conditions, cultural preferences, and fitness goals. '
+     P5 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='Real-Time Feedback Loop'
+        R1 font=None sz=18.0 b=None i=None col=None TEXT=' – Continuously adapts recommendations based on daily food logs and user '
+        R2 font=None sz=18.0 b=None i=None col=None TEXT='behavior'
+        R3 font=None sz=18.0 b=None i=None col=None TEXT='. '
+     P6 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='Multi-Modal Input'
+        R1 font=None sz=18.0 b=None i=None col=None TEXT=' – Supports text, voice, and image-based meal tracking for better usability. '
+     P7 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='Preventive Healthcare Focus'
+        R1 font=None sz=18.0 b=None i=None col=None TEXT=' – Goes beyond diet planning to provide disease-specific nutrition advice. '
+     P8 lvl=0 align=None
+        R0 font=None sz=18.0 b=True i=None col=None TEXT='Scalable & Enterprise-Ready'
+        R1 font=None sz=18.0 b=None i=None col=None TEXT=' – Built on '
+        R2 font=None sz=18.0 b=True i=None col=None TEXT='IBM watsonx.ai'
+        R3 font=None sz=18.0 b=None i=None col=None TEXT=' with '
+        R4 font=None sz=18.0 b=True i=None col=None TEXT='IBM Granite models'
+        R5 font=None sz=18.0 b=None i=None col=None TEXT=', ensuring reliability and governance. '
+     P9 lvl=0 align=None
+     P10 lvl=0 align=None
+        R0 font=None sz=18.0 b=None i=None col=None TEXT='This makes the solution a '
+        R1 font=None sz=18.0 b=True i=None col=None TEXT='smart, adaptive, and proactive digital nutritionist'
+        R2 font=None sz=18.0 b=None i=None col=None TEXT=', not just a static diet recommendation tool.'
+     P11 lvl=0 align=None
+==========================================================================================
+SLIDE 11 | layout: OBJECT
+  SHAPE name='Google Shape;278;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,0.46,7.05,0.77)
+     P0 lvl=0 align=LEFT (1)
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Git Hub Link'
+  SHAPE name='Google Shape;279;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,1.26,10.08,4.68)
+     P0 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='Please create public '
+        R1 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='github'
+        R2 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT=' repository (Enable Add README  button while creating repository) with format – '
+     P1 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=None i=None col=2B3541 TEXT='Please test and Paste the working  '
+        R1 font='Times New Roman' sz=18.5 b=None i=None col=2B3541 TEXT='Github'
+        R2 font='Times New Roman' sz=18.5 b=None i=None col=2B3541 TEXT=' URL –'
+     P2 lvl=0 align=None
+        R0 font='Times New Roman' sz=18.5 b=True i=None col=2B3541 TEXT='Make sure you have Uploaded following three files into your '
+        R1 font='Times New Roman' sz=18.5 b=True i=None col=2B3541 TEXT='github'
+        R2 font='Times New Roman' sz=18.5 b=True i=None col=2B3541 TEXT=' repository  '
+        R3 font='Times New Roman' sz=18.5 b=None i=None col=2B3541 TEXT='1) '
+        R4 font='Times New Roman' sz=18.5 b=None i=None col=2B3541 TEXT='app.json'
+        R5 font='Times New Roman' sz=18.5 b=None i=None col=2B3541 TEXT=' file , 2) yourproblemstatement.pdf file  3) your projectpresntation.pptx file 4)any other files '
+     P3 lvl=0 align=LEFT (1)
+  SHAPE name='Google Shape;280;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,3.67,8.17,0.84)
+     P0 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='·'
+  SHAPE name='Google Shape;281;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,4.81,8.17,0.84)
+     P0 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='·'
+  SHAPE name='Google Shape;282;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,5.94,8.17,0.42)
+     P0 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='·'
+==========================================================================================
+SLIDE 12 | layout: OBJECT
+  SHAPE name='Google Shape;278;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,0.46,7.05,0.77)
+     P0 lvl=0 align=LEFT (1)
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Future Scope '
+  SHAPE name='Google Shape;279;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,1.34,10.08,4.68)
+     P0 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=True i=False col=2B3541 TEXT='1.Integration with Wearables & Health Devices – '
+     P1 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='The system can be integrated with smartwatches and fitness trackers to collect real-time data such as steps, calories burned, heart rate, and sleep patterns. This will enable the Nutrition Agent to provide more accurate and dynamic diet recommendations based on actual user activity and health metrics.'
+     P2 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=True i=None col=2B3541 TEXT='2.'
+        R1 font='Times New Roman' sz=18.5 b=True i=False col=2B3541 TEXT='AI-Powered Voice Assistant & Multilingual Support '
+        R2 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='– '
+     P3 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='Enhancing the system with a voice-enabled assistant and support for multiple languages will improve accessibility. Users can interact naturally in their preferred language, making the solution more inclusive and suitable for diverse populations, especially in regions with varied linguistic backgrounds.'
+  SHAPE name='Google Shape;280;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,3.67,8.17,0.84)
+     P0 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='·'
+  SHAPE name='Google Shape;281;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,4.81,8.17,0.84)
+     P0 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='·'
+  SHAPE name='Google Shape;282;p18' type=AUTO_SHAPE (1) ph=None pos=(1.33,5.94,8.17,0.42)
+     P0 lvl=0 align=LEFT (1)
+        R0 font='Times New Roman' sz=18.5 b=False i=False col=2B3541 TEXT='·'
+==========================================================================================
+SLIDE 13 | layout: SECTION_HEADER
+  SHAPE name='TextBox 5' type=TEXT_BOX (17) ph=None pos=(0.36,0.23,6.67,0.74)
+     P0 lvl=0 align=None
+        R0 font=None sz=24.0 b=True i=None col=None TEXT='Certificates Earned:'
+     P1 lvl=0 align=CENTER (2)
+  SHAPE name='TextBox 2' type=TEXT_BOX (17) ph=None pos=(0.60,0.75,6.99,0.57)
+     P0 lvl=0 align=None
+        R0 font=None sz=28.0 b=True i=None col=None TEXT='Please\xa0 add\xa0your\xa0credly certificate\xa0'
+  SHAPE name='Picture 3' type=PICTURE (13) ph=None pos=(2.55,1.33,7.74,5.81)
+==========================================================================================
+SLIDE 14 | layout: SECTION_HEADER
+  SHAPE name='Picture 3' type=PICTURE (13) ph=None pos=(2.75,1.87,7.85,5.09)
+  SHAPE name='TextBox 4' type=TEXT_BOX (17) ph=None pos=(0.19,0.25,6.67,0.74)
+     P0 lvl=0 align=None
+        R0 font='Arial' sz=24.0 b=True i=False col=000000 TEXT='Certificates Earned:'
+        R1 font='Arial' sz=24.0 b=False i=False col=000000 TEXT='\u200b'
+     P1 lvl=0 align=CENTER (2)
+  SHAPE name='TextBox 5' type=TEXT_BOX (17) ph=None pos=(0.54,0.88,5.95,0.44)
+     P0 lvl=0 align=None
+        R0 font=None sz=20.0 b=True i=None col=None TEXT='Add your IBM BOB Certificate'
+==========================================================================================
+SLIDE 15 | layout: OBJECT
+  SHAPE name='Google Shape;310;p20' type=PICTURE (13) ph=None pos=(0.00,2.40,13.33,2.71)

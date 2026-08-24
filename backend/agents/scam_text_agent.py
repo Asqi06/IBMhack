@@ -10,7 +10,8 @@ from typing import Dict
 
 from .watsonx_client import generate
 
-# Exact prompt from brief — {{message}} will be substituted
+# Tuned prompt — separates promotional (low) from scam (high)
+# Keeps original intent but adds guard for legitimate marketing
 PROMPT_TEMPLATE = """You are a fraud-detection assistant protecting users in India from scams.
 Given a message, classify it and respond ONLY in this exact JSON format,
 nothing else, no explanation outside the JSON:
@@ -24,7 +25,15 @@ nothing else, no explanation outside the JSON:
 Look specifically for: urgency language ("act now", "account will be blocked"),
 requests to share an OTP or PIN, fake bank/government/delivery impersonation,
 suspicious or shortened links, and unusual payment/refund requests.
-If the message is ordinary and shows none of these patterns, return risk "low"
+
+IMPORTANT — promotional vs scam:
+- A purely promotional message (e.g., "50% off on shoes, code SAVE50 at myntra.com, shop now")
+  that has NO OTP/PIN request, NO bank/government/KYC/refund claim, NO impersonation,
+  and links to a legitimate brand domain should be "low" / "none" — not spam.
+- Only flag as high/medium when at least one strong scam signal is present.
+- When in doubt and no scam signal is present, prefer "low".
+
+If the message is ordinary, promotional, or shows none of the scam patterns, return risk "low"
 and category "none".
 
 Message to classify:
@@ -97,6 +106,16 @@ def _normalize(result: Dict) -> Dict:
     return {"risk": risk, "category": category, "reason": reason[:200]}
 
 
+def _is_promotional(message: str) -> bool:
+    """Heuristic: true if message looks like legitimate marketing, not scam."""
+    m = message.lower()
+    promo_kw = ["offer", "discount", "sale", "promo", "coupon", "cashback", "deal", "flat", "% off", "shop now", "limited time", "hurry"]
+    scam_kw = ["otp", "pin", "kyc", "blocked", "blocked", "account will be", "refund", "verify", "suspended", "urgent", "act now", "share otp"]
+    has_promo = any(k in m for k in promo_kw)
+    has_scam = any(k in m for k in scam_kw)
+    # If it has promo language but no strong scam signal, treat as promotional
+    return has_promo and not has_scam
+
 async def classify_text(message: str) -> Dict:
     """
     Classifies a message using Granite. Returns {"risk","category","reason"}.
@@ -114,7 +133,16 @@ async def classify_text(message: str) -> Dict:
             if not raw or not raw.strip():
                 raise ValueError("empty response from Granite")
             parsed = _extract_json(raw)
-            return _normalize(parsed)
+            norm = _normalize(parsed)
+            # Post-process: if Granite says high/medium but message is purely promotional, downgrade to low
+            if norm["risk"] in ("high", "medium") and _is_promotional(message):
+                # Double-check: if URL is to a known legit domain, definitely promo
+                known_legit = ["myntra.com", "flipkart.com", "amazon.in", "amazon.com", "ajio.com", "nykaa.com"]
+                if any(d in message.lower() for d in known_legit):
+                    return {"risk": "low", "category": "none", "reason": "promotional — no OTP/KYC/refund request, legitimate brand link"}
+                # Otherwise, downgrade to low but keep original reason
+                return {"risk": "low", "category": "none", "reason": f"promotional — {norm['reason']}"}
+            return norm
         except Exception as e:
             last_error = e
             if attempt == 0:

@@ -16,8 +16,12 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.view.View
+import androidx.appcompat.app.AlertDialog
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
@@ -49,6 +53,8 @@ class MainActivity : AppCompatActivity() {
     private fun currentBackendUrl(): String {
         val typed = findViewById<EditText>(R.id.backendUrlInput)?.text?.toString()?.trim().orEmpty()
         if (typed.isNotEmpty()) return typed
+        // Hosted URL for every device — user sets once in the app's Backend URL field.
+        // For local demo: emulator 10.0.2.2:8000, device 192.168.1.6:8000, hosted https://...codeengine.appdomain.cloud
         return getPrefs().getString("backendUrl", null) ?: "http://10.0.2.2:8000"
     }
 
@@ -320,6 +326,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     persistLastRisk(res.overallRisk)
                     if (res.overallRisk == "high" || res.overallRisk == "medium") {
+                        logDangerAndAdvise(text, res, "manual")
                         reportBtn.visibility = View.VISIBLE
                         reportBtn.setOnClickListener {
                             lifecycleScope.launch {
@@ -366,13 +373,83 @@ class MainActivity : AppCompatActivity() {
                     reasonText.text = res.details.firstOrNull { it.source == "text" }?.reason ?: ""
                     detailsText.text = "SMS: ${smsText.take(120)}\n" + res.details.joinToString("\n") { d -> "• ${d.source}: ${d.risk} — ${d.reason ?: d.riskLevel}" }
                     persistLastRisk(res.overallRisk)
-                    if (res.overallRisk == "high" || res.overallRisk == "medium") reportBtn.visibility = View.VISIBLE
+                    if (res.overallRisk == "high" || res.overallRisk == "medium") {
+                        reportBtn.visibility = View.VISIBLE
+                        // Log + advise dialog for dangerous SMS
+                        logDangerAndAdvise(smsText, res, "sms")
+                    }
                     // Also toast
                     Toast.makeText(this@MainActivity, "SMS scanned: ${res.overallRisk}", Toast.LENGTH_LONG).show()
                 } catch (_: Exception) { }
             }
         }
         smsHelper?.start()
+
+        // Activity log — RecyclerView with Room
+        val logRecycler = findViewById<RecyclerView>(R.id.logRecycler)
+        val logEmpty = findViewById<TextView>(R.id.logEmpty)
+        val clearLogBtn = findViewById<View>(R.id.clearLogBtn)
+        val db = AppDatabase.get(this)
+        val adapter = ScanLogAdapter { log, action ->
+            lifecycleScope.launch {
+                db.scanLogDao().updateAction(log.id, action)
+                Toast.makeText(this@MainActivity, "Marked as $action", Toast.LENGTH_SHORT).show()
+                if (action == "blocked") {
+                    // Also report the number/URL to ledger as blocked
+                    val target = log.snippet.take(20)
+                    try { ApiClient.report(target, log.category, currentBackendUrl()) } catch(_: Exception) {}
+                }
+            }
+        }
+        logRecycler.layoutManager = LinearLayoutManager(this)
+        logRecycler.adapter = adapter
+        lifecycleScope.launch {
+            db.scanLogDao().getAllFlow().collectLatest { logs ->
+                adapter.submitList(logs)
+                logEmpty.visibility = if (logs.isEmpty()) View.VISIBLE else View.GONE
+                logRecycler.visibility = if (logs.isEmpty()) View.GONE else View.VISIBLE
+            }
+        }
+        clearLogBtn.setOnClickListener {
+            lifecycleScope.launch {
+                db.scanLogDao().clearAll()
+                Toast.makeText(this@MainActivity, "Log cleared", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun logDangerAndAdvise(text: String, res: AnalyzeResult, source: String) {
+        val primary = res.details.firstOrNull { it.source == "text" }
+        val log = ScanLog(
+            overallRisk = res.overallRisk,
+            category = primary?.category ?: "phishing link",
+            reason = primary?.reason ?: res.details.firstOrNull()?.reason ?: "",
+            snippet = text.take(120),
+            fullText = text,
+            source = source
+        )
+        lifecycleScope.launch {
+            val db = AppDatabase.get(this@MainActivity)
+            val id = db.scanLogDao().insert(log)
+            // Advise dialog — iOS-style
+            AlertDialog.Builder(this@MainActivity)
+                .setTitle("⚠️ Dangerous message — ${res.overallRisk.uppercase()}")
+                .setMessage("${primary?.reason ?: "This looks like a scam."}\n\nCategory: ${primary?.category ?: "phishing link"}\n\nIt is advised to DELETE this message and BLOCK the sender. Do you want to mark it?")
+                .setPositiveButton("Delete") { _, _ ->
+                    lifecycleScope.launch { db.scanLogDao().updateAction(id, "deleted") }
+                    Toast.makeText(this@MainActivity, "Marked as deleted — please delete the message in your app", Toast.LENGTH_LONG).show()
+                }
+                .setNeutralButton("Block") { _, _ ->
+                    lifecycleScope.launch {
+                        db.scanLogDao().updateAction(id, "blocked")
+                        val target = res.details.firstNotNullOfOrNull { it.number ?: it.url } ?: text.take(20)
+                        try { ApiClient.report(target, primary?.category ?: "phishing link", currentBackendUrl()) } catch(_: Exception) {}
+                    }
+                    Toast.makeText(this@MainActivity, "Blocked and reported to ledger", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Dismiss", null)
+                .show()
+        }
     }
 
     /** Starts (or refreshes) the bubble without any screen-capture token — bubble shows immediately. */
