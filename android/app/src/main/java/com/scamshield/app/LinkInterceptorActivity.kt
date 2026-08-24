@@ -34,7 +34,7 @@ class LinkInterceptorActivity : AppCompatActivity() {
             return
         }
         val prefs = getSharedPreferences("scamshield", MODE_PRIVATE)
-        val backendUrl = prefs.getString("backendUrl", null) ?: "http://10.0.2.2:8000"
+        val backendUrl = prefs.getString("backendUrl", null) ?: "https://scanshield-ii9n.onrender.com"
 
         // Show a quick blocking UI while we scan
         lifecycleScope.launch {
@@ -59,24 +59,38 @@ class LinkInterceptorActivity : AppCompatActivity() {
 
                 if (overallHigh || urlRisk == "high" || urlRisk == "medium") {
                     val reason = scan?.optJSONObject("urlRisk")?.optString("reason") ?: res.optString("reason", "Flagged as phishing")
+
+                    // Log the detection NOW, not inside one button's handler. Previously a blocked
+                    // link was only recorded if the user happened to tap "Delete & Close" — picking
+                    // "Report" or "Open anyway" left no trace of a high-risk hit to review later.
+                    val riskLevel = if (overallHigh || urlRisk == "high") "high" else "medium"
+                    val dao = AppDatabase.get(this@LinkInterceptorActivity).scanLogDao()
+                    val logId = try {
+                        dao.insert(
+                            ScanLog(
+                                overallRisk = riskLevel,
+                                category = "phishing link",
+                                reason = reason,
+                                snippet = url.take(120),
+                                fullText = url,
+                                source = "chrome_block"
+                            )
+                        )
+                    } catch (e: Exception) {
+                        android.util.Log.e("ScamShield", "Could not log blocked link", e)
+                        -1L
+                    }
+
                     // BLOCK — advise Delete / Don't touch
                     AlertDialog.Builder(this@LinkInterceptorActivity)
                         .setTitle("🛑 ScamShield blocked this link")
                         .setMessage("This link is flagged as HIGH RISK:\n\n$url\n\nReason: $reason\n\nAdvised: DO NOT touch it. Delete the message that contained it. If you tapped it, close Chrome and do not enter any OTP/PIN.")
                         .setPositiveButton("Delete & Close") { _, _ ->
-                            // Log it
-                            lifecycleScope.launch {
-                                val db = AppDatabase.get(this@LinkInterceptorActivity)
-                                db.scanLogDao().insert(
-                                    ScanLog(
-                                        overallRisk = "high",
-                                        category = "phishing link",
-                                        reason = reason,
-                                        snippet = url.take(120),
-                                        fullText = url,
-                                        source = "chrome_block"
-                                    )
-                                )
+                            // Already logged above; just mark the advised action taken.
+                            if (logId > 0) {
+                                lifecycleScope.launch {
+                                    try { dao.updateAction(logId, "deleted") } catch (_: Exception) {}
+                                }
                             }
                             Toast.makeText(this@LinkInterceptorActivity, "Logged as blocked — delete the source message", Toast.LENGTH_LONG).show()
                             finish()
@@ -84,12 +98,19 @@ class LinkInterceptorActivity : AppCompatActivity() {
                         .setNeutralButton("Report") { _, _ ->
                             lifecycleScope.launch {
                                 try { ApiClient.report(url, "phishing link", backendUrl) } catch(_: Exception) {}
+                                if (logId > 0) try { dao.updateAction(logId, "blocked") } catch (_: Exception) {}
                                 Toast.makeText(this@LinkInterceptorActivity, "Reported to ledger", Toast.LENGTH_SHORT).show()
                             }
                             finish()
                         }
                         .setNegativeButton("Open anyway (risky)") { _, _ ->
-                            // Forward to Chrome despite warning — user insisted
+                            // Forward to Chrome despite warning — user insisted. The log entry stays,
+                            // marked as ignored, so the risky visit is still on record.
+                            if (logId > 0) {
+                                lifecycleScope.launch {
+                                    try { dao.updateAction(logId, "ignored") } catch (_: Exception) {}
+                                }
+                            }
                             try {
                                 val i = Intent(Intent.ACTION_VIEW, uri).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
                                 startActivity(i)

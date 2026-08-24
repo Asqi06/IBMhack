@@ -39,7 +39,7 @@ class WhatsAppListenerService : NotificationListenerService() {
         if (full.length < 10) return
 
         val prefs = getSharedPreferences("scamshield", Context.MODE_PRIVATE)
-        val backendUrl = prefs.getString("backendUrl", null) ?: "http://10.0.2.2:8000"
+        val backendUrl = prefs.getString("backendUrl", null) ?: "https://scanshield-ii9n.onrender.com"
 
         scope.launch {
             try {

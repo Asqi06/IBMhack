@@ -55,7 +55,7 @@ class MainActivity : AppCompatActivity() {
         if (typed.isNotEmpty()) return typed
         // Hosted URL for every device — user sets once in the app's Backend URL field.
         // For local demo: emulator 10.0.2.2:8000, device 192.168.1.6:8000, hosted https://...codeengine.appdomain.cloud
-        return getPrefs().getString("backendUrl", null) ?: "http://10.0.2.2:8000"
+        return getPrefs().getString("backendUrl", null) ?: "https://scanshield-ii9n.onrender.com"
     }
 
     /**
@@ -249,7 +249,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         startWidgetBtn.setOnClickListener {
-            val url = backendInput.text.toString().trim().ifEmpty { "http://10.0.2.2:8000" }
+            val url = backendInput.text.toString().trim().ifEmpty { "https://scanshield-ii9n.onrender.com" }
             getPrefs().edit().putString("backendUrl", url).apply()
             if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)) {
                 Toast.makeText(this, "Grant overlay permission first", Toast.LENGTH_SHORT).show()
@@ -278,7 +278,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Enter text to analyze", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val backendUrl = backendInput.text.toString().trim().ifEmpty { "http://10.0.2.2:8000" }
+            val backendUrl = backendInput.text.toString().trim().ifEmpty { "https://scanshield-ii9n.onrender.com" }
             getPrefs().edit().putString("backendUrl", backendUrl).apply()
             statusText.text = "Analyzing…"
             resultCard.visibility = View.GONE
@@ -356,7 +356,7 @@ class MainActivity : AppCompatActivity() {
 
         // SMS Retriever auto-scan (privacy-safe) — listens and runs same /analyze
         smsHelper = SmsRetrieverHelper(this) { smsText ->
-            val backendUrl = getPrefs().getString("backendUrl", "http://10.0.2.2:8000") ?: "http://10.0.2.2:8000"
+            val backendUrl = getPrefs().getString("backendUrl", "https://scanshield-ii9n.onrender.com") ?: "https://scanshield-ii9n.onrender.com"
             lifecycleScope.launch {
                 try {
                     val res = ApiClient.analyze(smsText, backendUrl)
@@ -454,7 +454,7 @@ class MainActivity : AppCompatActivity() {
 
     /** Starts (or refreshes) the bubble without any screen-capture token — bubble shows immediately. */
     private fun startBubbleService() {
-        val backendUrl = getPrefs().getString("backendUrl", "http://10.0.2.2:8000") ?: "http://10.0.2.2:8000"
+        val backendUrl = getPrefs().getString("backendUrl", "https://scanshield-ii9n.onrender.com") ?: "https://scanshield-ii9n.onrender.com"
         val svc = Intent(this, FloatingWidgetService::class.java).apply {
             putExtra(FloatingWidgetService.EXTRA_BACKEND_URL, backendUrl)
         }
@@ -467,7 +467,7 @@ class MainActivity : AppCompatActivity() {
 
     /** Hands the screen-capture consent token to the already-running bubble service. */
     private fun sendProjectionToService() {
-        val backendUrl = getPrefs().getString("backendUrl", "http://10.0.2.2:8000") ?: "http://10.0.2.2:8000"
+        val backendUrl = getPrefs().getString("backendUrl", "https://scanshield-ii9n.onrender.com") ?: "https://scanshield-ii9n.onrender.com"
         val svc = Intent(this, FloatingWidgetService::class.java).apply {
             putExtra(FloatingWidgetService.EXTRA_RESULT_CODE, mediaResultCode)
             putExtra(FloatingWidgetService.EXTRA_RESULT_DATA, mediaResultData)

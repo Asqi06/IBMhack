@@ -127,8 +127,8 @@
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/backendUrlInput"
-                    android:hint="http://10.0.2.2:8000"
-                    android:text="http://10.0.2.2:8000"
+                    android:hint="https://scanshield-ii9n.onrender.com"
+                    android:text="https://scanshield-ii9n.onrender.com"
                     android:textSize="15sp"
                     android:textColor="@color/ios_label"
                     android:textColorHint="@color/ios_gray2"
@@ -183,7 +183,7 @@
                 </LinearLayout>
 
                 <TextView
-                    android:text="Emulator → 10.0.2.2  •  Device → 192.168.1.6  •  System shows health at /health"
+                    android:text="Hosted → https://scanshield-ii9n.onrender.com (prefilled for every device) • Local: 10.0.2.2 (emulator) / 192.168.1.6 (device) • /health shows LIVE"
                     android:textSize="11sp"
                     android:textColor="@color/ios_gray"
                     android:padding="12dp"
@@ -463,6 +463,80 @@
                     android:gravity="center"
                     android:padding="16dp"
                     android:visibility="gone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Security Features — How to view -->
+        <TextView
+            android:text="SECURITY FEATURES"
+            android:textSize="12sp"
+            android:textColor="@color/ios_gray"
+            android:letterSpacing="0.06"
+            android:padding="16dp"
+            android:paddingBottom="6dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0.5dp"
+            app:strokeColor="@color/ios_separator">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:padding="14dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:text="📋 Activity Log — View &amp; Act"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/ios_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:text="Every high/medium scan is logged below. Tap a card → Delete (remove message), Block (report number/URL to ledger), Dismiss. Use Clear to wipe the log."
+                    android:textSize="11sp"
+                    android:textColor="@color/ios_gray"
+                    android:lineSpacingExtra="2dp"
+                    android:layout_marginTop="6dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="@color/ios_separator" android:layout_marginTop="10dp" android:layout_marginBottom="10dp"/>
+
+                <TextView
+                    android:text="🔗 Chrome &amp; WhatsApp Guard"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/ios_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:text="• WhatsApp: Enable notification access for ScamShield (Settings → Notification access). Incoming WhatsApp messages are auto-scanned — high risk shows a notification: tap → Delete/Block.\n• Chrome: Tap any http/https link → chooser → pick ScamShield. If high risk, it BLOCKS and shows “Delete &amp; Close / Report / Open anyway”. Low risk forwards to Chrome. Also works with the extension on desktop."
+                    android:textSize="11sp"
+                    android:textColor="@color/ios_gray"
+                    android:lineSpacingExtra="2dp"
+                    android:layout_marginTop="6dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:text="Not seeing the bubble during full-screen share (Meet/Zoom)? Pull down notification → Scan now, or paste text in Manual test below. The bubble is hidden by the system for privacy during another app's share."
+                    android:textSize="11sp"
+                    android:textColor="#B45309"
+                    android:background="#FFF7ED"
+                    android:padding="8dp"
+                    android:layout_marginTop="10dp"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"/>
             </LinearLayout>

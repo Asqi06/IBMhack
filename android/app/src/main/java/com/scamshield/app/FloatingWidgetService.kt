@@ -51,6 +51,8 @@ class FloatingWidgetService : Service() {
         const val EXTRA_BACKEND_URL = "backendUrl"
         const val ACTION_SCAN = "com.scamshield.app.ACTION_SCAN"
         private const val CHANNEL_ID = "scamshield_fg"
+        /** Separate high-importance channel: the ongoing bubble notice must stay silent, an alert must not. */
+        private const val ALERT_CHANNEL_ID = "scamshield_alert"
         private const val NOTIF_ID = 1001
     }
 
@@ -59,7 +61,7 @@ class FloatingWidgetService : Service() {
     private var layoutParams: WindowManager.LayoutParams? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var isScanning = false
-    private var backendUrl: String = "http://10.0.2.2:8000"
+    private var backendUrl: String = "https://scanshield-ii9n.onrender.com"
     private var mediaResultCode: Int = Activity.RESULT_CANCELED
     private var mediaResultData: Intent? = null
     private var pulseAnimator: ValueAnimator? = null
@@ -134,7 +136,7 @@ class FloatingWidgetService : Service() {
             freshToken = hasProjectionToken()
         }
         intent?.getStringExtra(EXTRA_BACKEND_URL)?.let { u -> backendUrl = u }
-        if (backendUrl == "http://10.0.2.2:8000") {
+        if (backendUrl == "https://scanshield-ii9n.onrender.com") {
             getPrefs().getString("backendUrl", null)?.let { backendUrl = it }
         }
         getPrefs().edit().putString("backendUrl", backendUrl).apply()
@@ -425,6 +427,12 @@ class FloatingWidgetService : Service() {
                 }
                 // Send TEXT ONLY to backend
                 val result = ApiClient.analyze(text, backendUrl)
+                // A detection that is not recorded is a detection the user cannot act on later:
+                // persist every high/medium verdict to the activity log and raise a warning, the
+                // same way the manual/SMS/WhatsApp paths already do.
+                if (result.overallRisk.equals("high", true) || result.overallRisk.equals("medium", true)) {
+                    logDangerAndWarn(text, result)
+                }
                 showResult(result.overallRisk, result.details)
             } catch (e: NeedsConsentException) {
                 // Session is gone — re-grant is the only fix. Keep the platform's own wording
@@ -448,7 +456,7 @@ class FloatingWidgetService : Service() {
                     e is java.net.UnknownHostException ->
                         "Cannot resolve backend host in $backendUrl. Check the URL in the ScamShield app."
                     e is java.net.ConnectException || e is java.net.SocketTimeoutException ->
-                        "Cannot reach backend at $backendUrl. On a real phone use your PC's LAN IP (10.0.2.2 is emulator-only) and start the backend with --host 0.0.0.0 on the same Wi-Fi."
+                        "Cannot reach backend at $backendUrl. For hosted mode, ensure internet is on. For local demo, set Backend URL to your PC's LAN IP and start backend with --host 0.0.0.0."
                     else -> "${e.javaClass.simpleName}: $msg"
                 }
                 showError(friendly)
@@ -507,6 +515,69 @@ class FloatingWidgetService : Service() {
         }
     }
 
+    /**
+     * Persist a dangerous bubble scan to the same Room activity log the manual/SMS/WhatsApp paths
+     * use, and raise a heads-up alert notification. Without this, a bubble detection vanished the
+     * moment the result card faded — nothing to review, delete, or block later.
+     */
+    private fun logDangerAndWarn(text: String, res: AnalyzeResult) {
+        val primary = res.details.firstOrNull { it.source == "text" }
+        val category = primary?.category ?: "phishing link"
+        val reason = primary?.reason ?: res.details.firstOrNull()?.reason ?: "This looks like a scam."
+        val log = ScanLog(
+            overallRisk = res.overallRisk,
+            category = category,
+            reason = reason,
+            snippet = text.take(120),
+            fullText = text,
+            source = "bubble"
+        )
+        scope.launch {
+            try {
+                AppDatabase.get(this@FloatingWidgetService).scanLogDao().insert(log)
+            } catch (e: Exception) {
+                android.util.Log.e("ScamShield", "Failed to log dangerous scan", e)
+            }
+        }
+        raiseDangerAlert(res.overallRisk, category, reason)
+    }
+
+    /**
+     * High-importance alert so a dangerous verdict is not lost if the overlay card is missed.
+     * Distinct channel + id from the ongoing (silent) foreground notice, and it advises the same
+     * Delete/Block action; tapping opens the app's activity log.
+     */
+    private fun raiseDangerAlert(overallRisk: String, category: String, reason: String) {
+        try {
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (Build.VERSION.SDK_INT >= 26) {
+                val ch = NotificationChannel(ALERT_CHANNEL_ID, "ScamShield Alerts", NotificationManager.IMPORTANCE_HIGH)
+                ch.description = "Warnings for dangerous messages found on screen"
+                nm.createNotificationChannel(ch)
+            }
+            val open = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val pending = android.app.PendingIntent.getActivity(
+                this, 2, open,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+            val notif = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setColor(0xFFFF3B30.toInt())
+                .setContentTitle("⚠️ ${overallRisk.uppercase()} risk — $category")
+                .setContentText(reason)
+                .setStyle(NotificationCompat.BigTextStyle().bigText("$reason\n\nAdvised: DELETE this message and BLOCK the sender. Open ScamShield to review or block."))
+                .setContentIntent(pending)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .build()
+            nm.notify((System.currentTimeMillis() % 100000).toInt() + 2000, notif)
+        } catch (e: Exception) {
+            android.util.Log.w("ScamShield", "Could not raise danger alert", e)
+        }
+    }
+
     private fun showResult(overallRisk: String, reason: String, details: List<AnalyzeDetail>) {
         if (floatView == null) {
             // No overlay — deliver the reason directly, since the 2-arg path can only see `details`
@@ -545,7 +616,14 @@ class FloatingWidgetService : Service() {
         // Card stroke matches risk
         (card as? com.google.android.material.card.MaterialCardView)?.strokeColor = color
 
-        reasonView.text = primary?.reason ?: (details.firstOrNull()?.reason ?: "")
+        val baseReason = primary?.reason ?: (details.firstOrNull()?.reason ?: "")
+        // A verdict without an instruction leaves the user guessing. State the advised action on
+        // the card itself, not only in the alert notification.
+        reasonView.text = when (risk) {
+            "high" -> "⚠️ Advised: DELETE this message and BLOCK the sender. Do not tap links or share any OTP/PIN.\n\n$baseReason"
+            "medium" -> "⚠️ Advised: treat as suspicious — do not tap links or share any OTP/PIN. Consider deleting it.\n\n$baseReason"
+            else -> baseReason
+        }
         // Build details lines
         val lines = details.joinToString("\n") { d ->
             when (d.source) {
