@@ -53,3 +53,84 @@
   font-family: system-ui, -apple-system, sans-serif;
   line-height: 1.4;
 }
+
+/* Click interstitial — shown instead of navigating to a flagged link. */
+.scamshield-block-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483647 !important;
+  background: rgba(17, 17, 20, 0.72);
+  backdrop-filter: blur(4px);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.scamshield-block-card {
+  background: #fff;
+  color: #1c1c1e;
+  width: min(440px, calc(100vw - 40px));
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  text-align: center;
+  box-sizing: border-box;
+}
+.scamshield-block-icon { font-size: 40px; line-height: 1; }
+.scamshield-block-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 10px;
+}
+.scamshield-block-reason {
+  font-size: 13px;
+  margin-top: 10px;
+  line-height: 1.45;
+  color: #3a3a3c;
+}
+.scamshield-block-url {
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #8e8e93;
+  background: #f2f2f7;
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 12px;
+  word-break: break-all;
+  text-align: left;
+}
+.scamshield-block-advice {
+  font-size: 12px;
+  color: #b45309;
+  background: #fff7ed;
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 12px;
+  line-height: 1.4;
+}
+.scamshield-block-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+.scamshield-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #f2f2f7;
+  color: #1c1c1e;
+  font-family: inherit;
+}
+.scamshield-btn-primary { background: #007aff; color: #fff; }
+.scamshield-btn-ghost {
+  background: transparent;
+  color: #8e8e93;
+  font-weight: 500;
+  font-size: 13px;
+}
+.scamshield-btn:disabled { opacity: 0.6; cursor: default; }

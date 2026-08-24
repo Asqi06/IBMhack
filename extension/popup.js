@@ -1,4 +1,5 @@
-const DEFAULT_BACKEND = "http://localhost:8000";
+// Hosted backend so the extension works on a fresh install with nothing running locally.
+const DEFAULT_BACKEND = "https://scanshield-ii9n.onrender.com";
 const toggleEl = document.getElementById("toggle");
 const backendInput = document.getElementById("backendUrl");
 const saveBtn = document.getElementById("saveBtn");

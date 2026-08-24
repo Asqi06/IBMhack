@@ -50,10 +50,15 @@ class FloatingWidgetService : Service() {
         const val EXTRA_RESULT_DATA = "resultData"
         const val EXTRA_BACKEND_URL = "backendUrl"
         const val ACTION_SCAN = "com.scamshield.app.ACTION_SCAN"
+        /** Ends the capture session on demand, so the system's screen-capture indicator goes away. */
+        const val ACTION_STOP_CAPTURE = "com.scamshield.app.ACTION_STOP_CAPTURE"
         private const val CHANNEL_ID = "scamshield_fg"
         /** Separate high-importance channel: the ongoing bubble notice must stay silent, an alert must not. */
         private const val ALERT_CHANNEL_ID = "scamshield_alert"
         private const val NOTIF_ID = 1001
+
+        /** Wording reused wherever we describe the armed-but-idle state, so the UI never overclaims. */
+        const val IDLE_TEXT = "Idle — nothing is captured until you tap ◈ SCAN"
     }
 
     private var windowManager: WindowManager? = null
@@ -157,6 +162,16 @@ class FloatingWidgetService : Service() {
         // Notification action "Scan now" — works even when the bubble is hidden by a full-screen share
         if (intent?.action == ACTION_SCAN) {
             onBubbleTap()
+        }
+
+        // Notification action "Stop capture" — ends the projection so the platform's screen-capture
+        // indicator disappears. The bubble stays; the next scan asks for consent again.
+        if (intent?.action == ACTION_STOP_CAPTURE) {
+            screenshotHelper?.invalidate()
+            mediaResultCode = Activity.RESULT_CANCELED
+            mediaResultData = null
+            Toast.makeText(this, "Screen capture stopped. Tapping the bubble will ask for it again.", Toast.LENGTH_LONG).show()
+            updateNotification("Screen capture stopped — tap the bubble to grant it again")
         }
 
         // NOT sticky: a system restart hands us a null intent with no consent token, which
@@ -721,10 +736,22 @@ class FloatingWidgetService : Service() {
             this, 1, scanIntent,
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
+        // Action: Stop capture — the honest escape hatch. Android keeps its screen-capture
+        // indicator lit for as long as a projection is held (that is what buys one-consent-per-
+        // session instead of a prompt per scan), so the user needs a one-tap way to end it.
+        val stopIntent = Intent(this, FloatingWidgetService::class.java).apply {
+            action = ACTION_STOP_CAPTURE
+        }
+        val pendingStop = android.app.PendingIntent.getService(
+            this, 3, stopIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        val capturing = screenshotHelper?.isCapturing == true
+        val subText = if (capturing) "Reading this screen now" else "On-device • Idle until you tap SCAN"
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("ScamShield")
             .setContentText(text)
-            .setSubText("On-device • Tap to scan")
+            .setSubText(subText)
             .setSmallIcon(android.R.drawable.ic_secure)
             .setColor(0xFF007AFF.toInt())
             .setColorized(false)
@@ -733,6 +760,7 @@ class FloatingWidgetService : Service() {
             .setOnlyAlertOnce(true)
             .setContentIntent(pendingOpen)
             .addAction(android.R.drawable.ic_menu_camera, "Scan", pendingScan)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop capture", pendingStop)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .build()
     }

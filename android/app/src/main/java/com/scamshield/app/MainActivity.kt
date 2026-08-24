@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     private var mediaResultData: Intent? = null
     private var smsHelper: SmsRetrieverHelper? = null
     private lateinit var bubbleStatusText: TextView
+    private var whatsappStatusText: TextView? = null
 
     // Header chips driven by GET /health. Before this they were hardcoded strings that
     // claimed "LIVE" and "Granite-4" even with the backend down or Granite mocked —
@@ -49,6 +50,45 @@ class MainActivity : AppCompatActivity() {
     private lateinit var ledgerChip: TextView
     private var healthJob: Job? = null
     private var warmupAttempted = false
+
+    /**
+     * Whether the user has actually granted notification access to our listener.
+     *
+     * The enabled_notification_listeners secure setting is the authoritative source: the service
+     * being declared in the manifest says nothing about whether it is running, so without this the
+     * UI claimed "WhatsApp messages are auto-scanned" while the listener was never bound.
+     */
+    private fun isNotificationAccessGranted(): Boolean {
+        return try {
+            val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners") ?: return false
+            val target = android.content.ComponentName(this, WhatsAppListenerService::class.java)
+            flat.split(":").any { entry ->
+                val cn = android.content.ComponentName.unflattenFromString(entry)
+                cn != null && cn.packageName == target.packageName && cn.className == target.className
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun refreshWhatsAppStatus() {
+        val view = whatsappStatusText ?: return
+        val granted = isNotificationAccessGranted()
+        val lastSeen = getPrefs().getLong("lastWhatsAppScanAt", 0L)
+        view.text = when {
+            !granted ->
+                "WhatsApp Guard: OFF — notification access not granted. Tap Enable, then turn ON ScamShield in the list. Until then WhatsApp messages are NOT scanned."
+            lastSeen == 0L ->
+                "WhatsApp Guard: ON ✓ — listening. No WhatsApp message scanned yet. Send yourself one (or tap Test it) to confirm."
+            else -> {
+                val ago = android.text.format.DateUtils.getRelativeTimeSpanString(
+                    lastSeen, System.currentTimeMillis(), android.text.format.DateUtils.MINUTE_IN_MILLIS
+                )
+                "WhatsApp Guard: ON ✓ — working. Last WhatsApp message scanned $ago."
+            }
+        }
+        view.setBackgroundColor(if (granted) 0xFFE0F2FE.toInt() else 0xFFFFF3E0.toInt())
+    }
 
     private fun currentBackendUrl(): String {
         val typed = findViewById<EditText>(R.id.backendUrlInput)?.text?.toString()?.trim().orEmpty()
@@ -180,6 +220,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refreshBubbleStatus()
+        // Reflects a grant made in Settings while we were backgrounded.
+        refreshWhatsAppStatus()
         // Also covers returning from Settings / from the background, so a backend started
         // after the app was opened shows up without a restart.
         refreshBackendHealth()
@@ -207,6 +249,29 @@ class MainActivity : AppCompatActivity() {
         backendStateChip = findViewById(R.id.backendStateChip)
         graniteChip = findViewById(R.id.graniteChip)
         ledgerChip = findViewById(R.id.ledgerChip)
+
+        // WhatsApp Guard — status + the one-tap route to the system screen that actually enables it.
+        whatsappStatusText = findViewById(R.id.whatsappStatusText)
+        findViewById<View>(R.id.enableWhatsAppBtn)?.setOnClickListener {
+            if (isNotificationAccessGranted()) {
+                Toast.makeText(this, "Already enabled — WhatsApp messages are being scanned", Toast.LENGTH_SHORT).show()
+                refreshWhatsAppStatus()
+                return@setOnClickListener
+            }
+            try {
+                startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                Toast.makeText(this, "Find ScamShield in the list and turn it ON", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                // A few OEM builds don't expose that action — fall back to the app's settings page.
+                try {
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+                } catch (_: Exception) {
+                    Toast.makeText(this, "Open Settings → Apps → Special access → Notification access → ScamShield", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        findViewById<View>(R.id.testWhatsAppBtn)?.setOnClickListener { runWhatsAppSelfTest() }
+        refreshWhatsAppStatus()
 
         // Restore saved backend URL
         getPrefs().getString("backendUrl", null)?.let { backendInput.setText(it) }
@@ -391,13 +456,12 @@ class MainActivity : AppCompatActivity() {
         val clearLogBtn = findViewById<View>(R.id.clearLogBtn)
         val db = AppDatabase.get(this)
         val adapter = ScanLogAdapter { log, action ->
-            lifecycleScope.launch {
-                db.scanLogDao().updateAction(log.id, action)
-                Toast.makeText(this@MainActivity, "Marked as $action", Toast.LENGTH_SHORT).show()
-                if (action == "blocked") {
-                    // Also report the number/URL to ledger as blocked
-                    val target = log.snippet.take(20)
-                    try { ApiClient.report(target, log.category, currentBackendUrl()) } catch(_: Exception) {}
+            when (action) {
+                "deleted" -> showDeleteOptions(log)
+                "blocked" -> blockAndReport(log)
+                else -> lifecycleScope.launch {
+                    db.scanLogDao().updateAction(log.id, action)
+                    Toast.makeText(this@MainActivity, "Dismissed", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -418,6 +482,155 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * End-to-end proof the WhatsApp path works: runs a canned scam message through the exact
+     * analyze → log → advise pipeline the listener uses, so the user sees a real detection appear
+     * in the activity log even before a genuine WhatsApp message arrives. Also flags, up front,
+     * whether notification access is still missing (the pipeline works, but live capture won't).
+     */
+    private fun runWhatsAppSelfTest() {
+        val sample = "URGENT: Your bank account is blocked. Verify now at http://secure-verify-login.co and share the OTP sent to you to avoid suspension."
+        val backendUrl = currentBackendUrl()
+        Toast.makeText(this, "Running a sample scam message through the WhatsApp pipeline…", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            try {
+                val res = ApiClient.analyze(sample, backendUrl)
+                logDangerAndAdvise(sample, res, "whatsapp_test")
+                if (!isNotificationAccessGranted()) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Pipeline works (logged below). But live WhatsApp scanning is OFF until you grant notification access.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "Self-test failed — backend unreachable at $backendUrl", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    /**
+     * "Delete" done honestly.
+     *
+     * No third-party app can delete a WhatsApp message — there is no API — and deleting an SMS
+     * requires holding the default-SMS-app role. The old button therefore only flipped a column to
+     * "deleted" while the scam sat untouched in the user's inbox, which is worse than useless
+     * because it reads as if something was removed. So offer exactly what the platform does allow:
+     * drop our own record, dismiss the offending notification, and jump the user to the
+     * conversation where they can delete it in two taps.
+     */
+    private fun showDeleteOptions(log: ScanLog) {
+        val dao = AppDatabase.get(this).scanLogDao()
+        val pkg = log.sourcePackage
+        val appLabel = when {
+            pkg == null -> null
+            pkg.startsWith("com.whatsapp") -> "WhatsApp"
+            else -> try {
+                packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
+            } catch (_: Exception) { pkg }
+        }
+        val canDismiss = WhatsAppListenerService.isConnected() && !log.notificationKey.isNullOrEmpty()
+        val canOpen = pkg != null && packageManager.getLaunchIntentForPackage(pkg) != null
+
+        val options = mutableListOf<Pair<String, () -> Unit>>()
+        options += "Remove from ScamShield log" to {
+            lifecycleScope.launch {
+                dao.delete(log.id)
+                Toast.makeText(this@MainActivity, "Removed from log", Toast.LENGTH_SHORT).show()
+            }
+            Unit
+        }
+        if (canDismiss) {
+            options += "Dismiss its notification" to {
+                val ok = WhatsAppListenerService.dismiss(log.notificationKey)
+                Toast.makeText(
+                    this,
+                    if (ok) "Notification dismissed" else "Could not dismiss — notification already gone",
+                    Toast.LENGTH_SHORT
+                ).show()
+                lifecycleScope.launch { dao.updateAction(log.id, "deleted") }
+                Unit
+            }
+        }
+        if (canOpen && appLabel != null) {
+            options += "Open $appLabel to delete it" to {
+                try {
+                    startActivity(packageManager.getLaunchIntentForPackage(pkg!!)!!)
+                    Toast.makeText(this, "Long-press the message → Delete → Delete for me", Toast.LENGTH_LONG).show()
+                    lifecycleScope.launch { dao.updateAction(log.id, "deleted") }
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Could not open $appLabel", Toast.LENGTH_SHORT).show()
+                }
+                Unit
+            }
+        }
+
+        val explain = if (canOpen || canDismiss) {
+            "Android does not let ScamShield delete another app's message. Here is what it can actually do:"
+        } else {
+            "This was scanned from the screen, so there is no linked message to act on. Android does not let any app delete another app's messages — delete it in the app it came from."
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Delete — ${log.overallRisk.uppercase()} risk")
+            .setMessage("$explain\n\n\"${log.snippet}\"")
+            .setItems(options.map { it.first }.toTypedArray()) { _, which -> options[which].second() }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    /**
+     * "Block" done honestly. Writing to Android's blocked-number provider is restricted to the
+     * default dialer/SMS app, so we report to the shared ledger (which is ours to write) and hand
+     * the user off to the system's own blocked-numbers screen for the part only it can do.
+     */
+    private fun blockAndReport(log: ScanLog) {
+        val dao = AppDatabase.get(this).scanLogDao()
+        // Prefer the extracted number/URL over a blind snippet prefix, which used to send 20
+        // characters of arbitrary message text to the ledger as if it were an identifier.
+        val target = log.target ?: WhatsAppListenerService.extractTarget(log.fullText, log.sender)
+        lifecycleScope.launch {
+            dao.updateAction(log.id, "blocked")
+            if (target != null) {
+                try {
+                    ApiClient.report(target, log.category, currentBackendUrl())
+                    Toast.makeText(this@MainActivity, "Reported $target to ledger ✓", Toast.LENGTH_SHORT).show()
+                    refreshBackendHealth()
+                } catch (e: Exception) {
+                    Toast.makeText(this@MainActivity, "Ledger report failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(this@MainActivity, "No number or URL found in this message to report", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        val isPhone = target != null && !target.startsWith("http")
+        AlertDialog.Builder(this)
+            .setTitle("Block the sender")
+            .setMessage(
+                if (isPhone)
+                    "Reported to the ScamShield ledger.\n\nOnly Android's own dialer can add $target to your blocked list. Open the system blocked-numbers screen to finish?"
+                else
+                    "Reported to the ScamShield ledger.\n\nFor a link there is nothing to block at the OS level — avoid tapping it, and delete the message in the app it came from."
+            )
+            .apply {
+                if (isPhone) {
+                    setPositiveButton("Open blocked numbers") { _, _ ->
+                        try {
+                            val tm = getSystemService(Context.TELECOM_SERVICE) as android.telecom.TelecomManager
+                            startActivity(tm.createManageBlockedNumbersIntent())
+                        } catch (e: Exception) {
+                            Toast.makeText(this@MainActivity, "Open Phone app → Settings → Blocked numbers", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    setNegativeButton("Later", null)
+                } else {
+                    setPositiveButton("OK", null)
+                }
+            }
+            .show()
+    }
+
     private fun logDangerAndAdvise(text: String, res: AnalyzeResult, source: String) {
         val primary = res.details.firstOrNull { it.source == "text" }
         val log = ScanLog(
@@ -426,27 +639,22 @@ class MainActivity : AppCompatActivity() {
             reason = primary?.reason ?: res.details.firstOrNull()?.reason ?: "",
             snippet = text.take(120),
             fullText = text,
-            source = source
+            source = source,
+            // Recorded now so Block/Report has a real identifier later instead of a text prefix.
+            target = res.details.firstNotNullOfOrNull { it.number ?: it.url }
+                ?: WhatsAppListenerService.extractTarget(text, null)
         )
         lifecycleScope.launch {
             val db = AppDatabase.get(this@MainActivity)
             val id = db.scanLogDao().insert(log)
-            // Advise dialog — iOS-style
+            val saved = log.copy(id = id)
+            // Advise dialog — iOS-style. Both actions route through the same honest handlers the
+            // log list uses, so nothing here claims to delete a message it cannot touch.
             AlertDialog.Builder(this@MainActivity)
                 .setTitle("⚠️ Dangerous message — ${res.overallRisk.uppercase()}")
-                .setMessage("${primary?.reason ?: "This looks like a scam."}\n\nCategory: ${primary?.category ?: "phishing link"}\n\nIt is advised to DELETE this message and BLOCK the sender. Do you want to mark it?")
-                .setPositiveButton("Delete") { _, _ ->
-                    lifecycleScope.launch { db.scanLogDao().updateAction(id, "deleted") }
-                    Toast.makeText(this@MainActivity, "Marked as deleted — please delete the message in your app", Toast.LENGTH_LONG).show()
-                }
-                .setNeutralButton("Block") { _, _ ->
-                    lifecycleScope.launch {
-                        db.scanLogDao().updateAction(id, "blocked")
-                        val target = res.details.firstNotNullOfOrNull { it.number ?: it.url } ?: text.take(20)
-                        try { ApiClient.report(target, primary?.category ?: "phishing link", currentBackendUrl()) } catch(_: Exception) {}
-                    }
-                    Toast.makeText(this@MainActivity, "Blocked and reported to ledger", Toast.LENGTH_SHORT).show()
-                }
+                .setMessage("${primary?.reason ?: "This looks like a scam."}\n\nCategory: ${primary?.category ?: "phishing link"}\n\nAdvised: DELETE this message and BLOCK the sender. Do not tap links or share any OTP/PIN.")
+                .setPositiveButton("Delete…") { _, _ -> showDeleteOptions(saved) }
+                .setNeutralButton("Block…") { _, _ -> blockAndReport(saved) }
                 .setNegativeButton("Dismiss", null)
                 .show()
         }

@@ -20,6 +20,55 @@ class WhatsAppListenerService : NotificationListenerService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val whatsappPackages = setOf("com.whatsapp", "com.whatsapp.w4b")
 
+    companion object {
+        /**
+         * The bound instance, or null when the user has not granted notification access (or the
+         * platform has not bound us yet). Dismissing a flagged notification is one of the few
+         * things Android genuinely permits us to do, and it needs a live listener to do it.
+         */
+        @Volatile
+        var instance: WhatsAppListenerService? = null
+            private set
+
+        fun isConnected() = instance != null
+
+        /** Dismiss a flagged notification from the shade. Returns false if we can't (not bound). */
+        fun dismiss(key: String?): Boolean {
+            if (key.isNullOrEmpty()) return false
+            val svc = instance ?: return false
+            return try {
+                svc.cancelNotification(key)
+                true
+            } catch (e: Exception) {
+                android.util.Log.w("ScamShield", "cancelNotification failed", e)
+                false
+            }
+        }
+
+        private val PHONE_RE = Regex("""(\+?\d[\d\-\s()]{7,}\d)""")
+        private val URL_RE = Regex("""https?://\S+""", RegexOption.IGNORE_CASE)
+
+        /** Best blockable/reportable identifier in the text — a URL if present, else a phone number. */
+        fun extractTarget(text: String, sender: String?): String? =
+            URL_RE.find(text)?.value
+                ?: PHONE_RE.find(sender ?: "")?.value?.trim()
+                ?: PHONE_RE.find(text)?.value?.trim()
+    }
+
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        instance = this
+        getSharedPreferences("scamshield", Context.MODE_PRIVATE).edit()
+            .putBoolean("whatsappListenerConnected", true).apply()
+    }
+
+    override fun onListenerDisconnected() {
+        instance = null
+        getSharedPreferences("scamshield", Context.MODE_PRIVATE).edit()
+            .putBoolean("whatsappListenerConnected", false).apply()
+        super.onListenerDisconnected()
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.packageName !in whatsappPackages) return
         val notif = sbn.notification ?: return
@@ -41,6 +90,18 @@ class WhatsAppListenerService : NotificationListenerService() {
         val prefs = getSharedPreferences("scamshield", Context.MODE_PRIVATE)
         val backendUrl = prefs.getString("backendUrl", null) ?: "https://scanshield-ii9n.onrender.com"
 
+        // Debounce: WhatsApp re-posts the same notification on every group update, and a
+        // summary + per-message pair arrives for one message. Skip anything we just handled.
+        val lastText = prefs.getString("lastWhatsAppText", "")
+        val lastAt = prefs.getLong("lastWhatsAppScanAt", 0L)
+        if (full == lastText && System.currentTimeMillis() - lastAt < 15_000) return
+        // Record that the listener is alive and what it last saw — the app's status line reads
+        // this to prove WhatsApp Guard is genuinely running rather than just declared.
+        prefs.edit()
+            .putString("lastWhatsAppText", full)
+            .putLong("lastWhatsAppScanAt", System.currentTimeMillis())
+            .apply()
+
         scope.launch {
             try {
                 val res = ApiClient.analyze(full, backendUrl)
@@ -54,7 +115,12 @@ class WhatsAppListenerService : NotificationListenerService() {
                         reason = primary?.reason ?: res.details.firstOrNull()?.reason ?: "",
                         snippet = full.take(120),
                         fullText = full,
-                        source = "whatsapp"
+                        source = "whatsapp",
+                        sourcePackage = sbn.packageName,
+                        notificationKey = sbn.key,
+                        target = res.details.firstNotNullOfOrNull { it.number ?: it.url }
+                            ?: extractTarget(full, title),
+                        sender = title.ifBlank { null }
                     )
                     db.scanLogDao().insert(log)
 

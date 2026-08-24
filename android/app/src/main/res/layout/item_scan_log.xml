@@ -78,7 +78,7 @@
 
             <TextView
                 android:id="@+id/logDelete"
-                android:text="🗑 Delete"
+                android:text="🗑 Delete…"
                 android:textSize="12sp"
                 android:textColor="#FF3B30"
                 android:background="?attr/selectableItemBackground"
@@ -90,7 +90,7 @@
 
             <TextView
                 android:id="@+id/logBlock"
-                android:text="🚫 Block"
+                android:text="🚫 Block…"
                 android:textSize="12sp"
                 android:textColor="#007AFF"
                 android:background="?attr/selectableItemBackground"

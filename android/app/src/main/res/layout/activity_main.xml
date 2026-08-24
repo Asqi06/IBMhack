@@ -503,11 +503,22 @@
                     android:layout_height="wrap_content"/>
 
                 <TextView
-                    android:text="Every high/medium scan is logged below. Tap a card → Delete (remove message), Block (report number/URL to ledger), Dismiss. Use Clear to wipe the log."
+                    android:text="Every high/medium scan is logged below. Tap a card → Delete (removes it from this log + shows you how to delete the real message), Block (report number/URL to ledger + open Android's blocked-numbers screen), Dismiss. Use Clear to wipe the log."
                     android:textSize="11sp"
                     android:textColor="@color/ios_gray"
                     android:lineSpacingExtra="2dp"
                     android:layout_marginTop="6dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:text="⚠ Android does not let any app delete another app's messages — there is no WhatsApp API for it, and SMS deletion needs the default-SMS-app role. So Delete clears ScamShield's record and jumps you to the conversation to remove it there. Any app claiming otherwise is not doing what it says."
+                    android:textSize="10sp"
+                    android:textColor="#B45309"
+                    android:background="#FFF7ED"
+                    android:padding="8dp"
+                    android:lineSpacingExtra="2dp"
+                    android:layout_marginTop="8dp"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"/>
 
@@ -522,7 +533,43 @@
                     android:layout_height="wrap_content"/>
 
                 <TextView
-                    android:text="• WhatsApp: Enable notification access for ScamShield (Settings → Notification access). Incoming WhatsApp messages are auto-scanned — high risk shows a notification: tap → Delete/Block.\n• Chrome: Tap any http/https link → chooser → pick ScamShield. If high risk, it BLOCKS and shows “Delete &amp; Close / Report / Open anyway”. Low risk forwards to Chrome. Also works with the extension on desktop."
+                    android:id="@+id/whatsappStatusText"
+                    android:text="WhatsApp Guard: checking…"
+                    android:textSize="11sp"
+                    android:textColor="#1C1C1E"
+                    android:background="#FFF3E0"
+                    android:padding="8dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <Button
+                        android:id="@+id/enableWhatsAppBtn"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:text="Enable WhatsApp Guard"
+                        android:textSize="12sp"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"/>
+
+                    <Button
+                        android:id="@+id/testWhatsAppBtn"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:text="Test it"
+                        android:textSize="12sp"
+                        android:layout_marginStart="8dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                <TextView
+                    android:text="• WhatsApp: tap Enable above → turn ON ScamShield in Notification access. Incoming WhatsApp messages are then auto-scanned — high risk raises a notification: tap → Delete/Block. (This reads the notification text only; it never opens your chats or storage.)\n• Chrome: Tap any http/https link → chooser → pick ScamShield. If high risk, it BLOCKS and shows “Delete &amp; Close / Report / Open anyway”. Low risk forwards to Chrome. Desktop uses the extension for realtime link checks."
                     android:textSize="11sp"
                     android:textColor="@color/ios_gray"
                     android:lineSpacingExtra="2dp"

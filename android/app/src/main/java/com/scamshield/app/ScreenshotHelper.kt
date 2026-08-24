@@ -15,7 +15,9 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.util.DisplayMetrics
-import kotlinx.coroutines.delay
+import android.view.Surface
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Thrown when there is no usable capture session and the user must grant consent again.
@@ -24,19 +26,23 @@ import kotlinx.coroutines.delay
 class NeedsConsentException(message: String) : RuntimeException(message)
 
 /**
- * Screenshot via MediaProjection — persistent single session.
+ * Screenshot via MediaProjection — one consent, and pixels flow ONLY during a scan.
  *
- * WHY THIS IS A PERSISTENT MIRROR AND NOT A PER-TAP CAPTURE:
- * Android 14 (targetSdk 34+) throws SecurityException if createVirtualDisplay() is called more
- * than once on the same MediaProjection instance — "each MediaProjection instance must be used
- * only once". The previous design created (and released) a fresh VirtualDisplay on every tap, so
- * the SECOND scan onward threw, was misread as "consent ended", and forced the user to grant
- * screen capture again and again.
+ * Two platform facts drive this design:
  *
- * The fix: call createVirtualDisplay ONCE per consent grant and keep it mirroring the screen. A
- * background listener continuously holds the latest mirrored frame. Each tap just reads that frame
- * — no new createVirtualDisplay, so no repeat consent. The projection (and its virtual display)
- * live until the user revokes it, the service is destroyed, or the platform ends the session.
+ * 1. Android 14 (targetSdk 34) throws SecurityException if createVirtualDisplay() is called more
+ *    than once on the same MediaProjection instance — "each MediaProjection instance must be used
+ *    only once". Creating a display per tap therefore made every scan after the first demand a new
+ *    screen-capture grant. So the VirtualDisplay is created exactly ONCE per consent and kept.
+ *
+ * 2. A VirtualDisplay renders nothing while its surface is null, and the docs sanction
+ *    VirtualDisplay#resize / #setSurface as the way to update a display without a second
+ *    createVirtualDisplay. So between scans the surface is detached: the session stays valid (no
+ *    re-prompt) but not a single frame is captured while idle.
+ *
+ * Attaching a fresh surface also forces the compositor to redraw into it, which is what makes a
+ * scan work on a completely static screen — waiting for the *next* frame of a continuous mirror
+ * never returned on an unchanging screen, which is why scans appeared to hang with no result.
  */
 class ScreenshotHelper(private val context: Context) {
 
@@ -50,18 +56,18 @@ class ScreenshotHelper(private val context: Context) {
     /** Live projection for this capture session. Null until acquireProjection(), and after onStop. */
     private var cachedProjection: MediaProjection? = null
 
-    /** The single VirtualDisplay for this session (Android 14: only one createVirtualDisplay allowed). */
+    /** The single VirtualDisplay for this session. Surface attached only while capturing. */
     private var virtualDisplay: VirtualDisplay? = null
-    private var imageReader: ImageReader? = null
     private var vdWidth = 0
     private var vdHeight = 0
 
-    /** Latest mirrored frame, continuously refreshed by the reader's listener. Guarded by [frameLock]. */
-    private val frameLock = Any()
-    private var latestImage: Image? = null
-
     private var imageThread: HandlerThread? = null
     private var imageHandler: Handler? = null
+
+    /** True only for the few hundred ms of an actual capture — drives the UI's honesty about state. */
+    @Volatile
+    var isCapturing: Boolean = false
+        private set
 
     /** Invoked when the platform ends the projection, so the service can ask for fresh consent. */
     var onProjectionStopped: (() -> Unit)? = null
@@ -71,14 +77,11 @@ class ScreenshotHelper(private val context: Context) {
     /**
      * Consume the screen-capture consent token and hold the resulting MediaProjection.
      *
-     * Must be called as soon as the token arrives, NOT lazily on first capture. The documented
-     * Android 14 order is: createScreenCaptureIntent() -> user grants ->
+     * Must be called as soon as the token arrives, NOT lazily on first capture: the documented
+     * Android 14 order is createScreenCaptureIntent() -> user grants ->
      * startForeground(FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION) -> getMediaProjection(). A token
-     * left unconsumed while the user hunts for the bubble goes stale, and getMediaProjection()
-     * then throws SecurityException. The token is single-use, so this runs once per consent grant.
-     *
-     * The VirtualDisplay is NOT created here (we need real display metrics first) — it is created
-     * exactly once on the first capture, then reused for the whole session.
+     * left unconsumed goes stale and getMediaProjection() then throws SecurityException. The token
+     * is single-use, so this runs exactly once per consent grant.
      */
     fun acquireProjection(resultCode: Int, data: Intent) {
         invalidate()
@@ -96,7 +99,7 @@ class ScreenshotHelper(private val context: Context) {
         cachedProjection = p
     }
 
-    /** Called when a fresh consent token arrives, so the next session builds a new projection. */
+    /** Ends the session entirely. The next scan needs a fresh consent grant. */
     fun invalidate() {
         releaseDisplay()
         try { cachedProjection?.stop() } catch (_: Exception) {}
@@ -108,16 +111,11 @@ class ScreenshotHelper(private val context: Context) {
         invalidate()
     }
 
-    /** Tear down the mirror (virtual display + reader + frame + worker thread). Projection untouched. */
     private fun releaseDisplay() {
-        synchronized(frameLock) {
-            try { latestImage?.close() } catch (_: Exception) {}
-            latestImage = null
-        }
+        isCapturing = false
+        try { virtualDisplay?.setSurface(null) } catch (_: Exception) {}
         try { virtualDisplay?.release() } catch (_: Exception) {}
         virtualDisplay = null
-        try { imageReader?.close() } catch (_: Exception) {}
-        imageReader = null
         try { imageThread?.quitSafely() } catch (_: Exception) {}
         imageThread = null
         imageHandler = null
@@ -125,127 +123,132 @@ class ScreenshotHelper(private val context: Context) {
         vdHeight = 0
     }
 
-    private fun ensureImageThread() {
-        if (imageThread == null) {
-            val t = HandlerThread("ScamShieldCapture").also { it.start() }
-            imageThread = t
-            imageHandler = Handler(t.looper)
-        }
-    }
-
-    private fun newReader(width: Int, height: Int): ImageReader {
-        // maxImages=3: the producer keeps mirroring while we hold the most-recent frame for the
-        // next tap, so we need one extra slot beyond the transient acquire.
-        val reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 3)
-        reader.setOnImageAvailableListener({ r ->
-            synchronized(frameLock) {
-                val img = try { r.acquireLatestImage() } catch (_: Exception) { null }
-                if (img != null) {
-                    try { latestImage?.close() } catch (_: Exception) {}
-                    latestImage = img
-                }
-            }
-        }, imageHandler)
-        return reader
+    private fun ensureImageThread(): Handler {
+        val existing = imageHandler
+        if (existing != null) return existing
+        val t = HandlerThread("ScamShieldCapture").also { it.start() }
+        imageThread = t
+        return Handler(t.looper).also { imageHandler = it }
     }
 
     /**
-     * Guarantee a live VirtualDisplay for the current projection.
-     *  - First capture: the single allowed createVirtualDisplay() for this MediaProjection.
-     *  - Rotation / size change: Android 14 forbids a second createVirtualDisplay on the same
-     *    instance, so resize the existing one and hand it a new surface (the documented path).
+     * Attach [surface] to the session's single VirtualDisplay, creating that display the first time.
+     * Never calls createVirtualDisplay twice — see the class doc.
      */
-    private fun ensureDisplay(metrics: DisplayMetrics) {
+    private fun attachDisplay(metrics: DisplayMetrics, surface: Surface): VirtualDisplay {
         val projection = cachedProjection
             ?: throw NeedsConsentException("Screen capture session has ended")
         val width = metrics.widthPixels
         val height = metrics.heightPixels
         val density = metrics.densityDpi
-        if (width <= 0 || height <= 0) {
-            throw IllegalArgumentException("Invalid display metrics $width x $height — try again")
-        }
 
-        val vd = virtualDisplay
-        if (vd != null && imageReader != null) {
-            if (width == vdWidth && height == vdHeight) return
-            // Screen rotated / resized: reuse the SAME MediaProjection via resize + setSurface.
-            val newReader = newReader(width, height)
+        val existing = virtualDisplay
+        if (existing != null) {
+            if (width != vdWidth || height != vdHeight) {
+                // Rotation / size change: resize rather than create a second display.
+                try {
+                    existing.resize(width, height, density)
+                    vdWidth = width
+                    vdHeight = height
+                } catch (e: Exception) {
+                    throw RuntimeException("Failed to resize capture display: ${e.message}")
+                }
+            }
             try {
-                vd.resize(width, height, density)
-                @Suppress("DEPRECATION")
-                vd.surface = newReader.surface
+                existing.setSurface(surface)
             } catch (e: Exception) {
-                try { newReader.close() } catch (_: Exception) {}
-                throw RuntimeException("Failed to resize capture surface: ${e.message}")
+                throw RuntimeException("Failed to attach capture surface: ${e.message}")
             }
-            val old = imageReader
-            imageReader = newReader
-            synchronized(frameLock) {
-                try { latestImage?.close() } catch (_: Exception) {}
-                latestImage = null
-            }
-            try { old?.close() } catch (_: Exception) {}
-            vdWidth = width
-            vdHeight = height
-            return
+            return existing
         }
 
-        // First capture of this session — the one and only createVirtualDisplay call.
-        ensureImageThread()
-        val reader = newReader(width, height)
-        val display = try {
+        val handler = ensureImageThread()
+        val created = try {
             projection.createVirtualDisplay(
                 "ScamShieldCapture",
                 width, height, density,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                reader.surface, null, imageHandler
+                surface, null, handler
             )
         } catch (e: SecurityException) {
-            try { reader.close() } catch (_: Exception) {}
             // The FGS lost the mediaProjection type, or the session is no longer valid.
             throw NeedsConsentException("Screen capture rejected by system: ${e.message}")
         } catch (e: Exception) {
-            try { reader.close() } catch (_: Exception) {}
             throw RuntimeException("Virtual display failed: ${e.message}")
-        }
-        imageReader = reader
-        virtualDisplay = display
+        } ?: throw RuntimeException("createVirtualDisplay returned null")
+
+        virtualDisplay = created
         vdWidth = width
         vdHeight = height
+        return created
     }
 
     /**
-     * Grab the current screen as a bitmap. Reuses the persistent mirror — no new consent.
-     *
-     * The current frame is discarded first and we wait for the NEXT one, so the shot reflects the
-     * screen as it is right now (e.g. after the caller hid its own overlay) rather than a stale
-     * frame that still shows the bubble.
+     * Grab the screen as it is right now. Reuses the existing consent, attaches a surface for the
+     * duration of this call only, and detaches it before returning so nothing is captured while idle.
      */
     suspend fun capture_once(metrics: DisplayMetrics): Bitmap {
-        ensureDisplay(metrics)
-
-        synchronized(frameLock) {
-            try { latestImage?.close() } catch (_: Exception) {}
-            latestImage = null
+        if (cachedProjection == null) {
+            throw NeedsConsentException("Screen capture session has ended")
+        }
+        val width = metrics.widthPixels
+        val height = metrics.heightPixels
+        if (width <= 0 || height <= 0) {
+            throw IllegalArgumentException("Invalid display metrics $width x $height — try again")
         }
 
-        var waited = 0
-        val step = 50
-        while (waited < 5000) {
-            val ready = synchronized(frameLock) { latestImage != null }
-            if (ready) break
-            delay(step.toLong())
-            waited += step
+        val handler = ensureImageThread()
+        val reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+        val frame = CompletableDeferred<Bitmap>()
+
+        reader.setOnImageAvailableListener({ r ->
+            if (frame.isCompleted) {
+                // Drain trailing frames so the buffer queue never wedges.
+                try { r.acquireLatestImage()?.close() } catch (_: Exception) {}
+                return@setOnImageAvailableListener
+            }
+            var image: Image? = null
+            try {
+                image = r.acquireLatestImage()
+                if (image != null) {
+                    frame.complete(imageToBitmap(image, width, height))
+                }
+            } catch (e: Exception) {
+                frame.completeExceptionally(RuntimeException("Capture failed: ${e.message}"))
+            } finally {
+                try { image?.close() } catch (_: Exception) {}
+            }
+        }, handler)
+
+        val display = try {
+            isCapturing = true
+            attachDisplay(metrics, reader.surface)
+        } catch (e: Exception) {
+            isCapturing = false
+            try { reader.close() } catch (_: Exception) {}
+            throw e
         }
 
-        synchronized(frameLock) {
-            val image = latestImage ?: throw RuntimeException(
-                "Screenshot timed out — another app may be sharing the full screen. Stop that share and try again, or use Manual paste in app."
+        try {
+            // A fresh surface normally yields a frame within a couple of vsyncs.
+            var bitmap = withTimeoutOrNull(2500) { frame.await() }
+            if (bitmap == null) {
+                // Re-attach once: some devices need the surface swap to trigger a redraw when the
+                // screen is perfectly static.
+                try {
+                    display.setSurface(null)
+                    display.setSurface(reader.surface)
+                } catch (_: Exception) {}
+                bitmap = withTimeoutOrNull(3500) { frame.await() }
+            }
+            return bitmap ?: throw RuntimeException(
+                "Screen capture produced no frame. If another app is sharing the full screen (Meet/Zoom), stop that share and tap again — or use Manual paste in the app."
             )
-            // Copy pixels out but DO NOT close the Image — the listener owns its lifecycle and keeps
-            // it as the last-known frame for a static screen. Held under lock so the listener can't
-            // swap it mid-read.
-            return imageToBitmap(image, metrics.widthPixels, metrics.heightPixels)
+        } finally {
+            // Idle from here on: no surface means the display renders nothing at all.
+            isCapturing = false
+            try { display.setSurface(null) } catch (_: Exception) {}
+            try { reader.close() } catch (_: Exception) {}
         }
     }
 

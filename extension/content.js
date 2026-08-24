@@ -3,12 +3,29 @@
  * Calls backend POST /scan-url for each unique URL and highlights risk.
  * Respects toggle in chrome.storage.sync { enabled, backendUrl }.
  *
- * When enabled in ScamShield app, user flips toggle ON here (or via future sync with backend flag).
+ * Highlighting alone does not stop anyone: the click is the moment that matters, so a flagged
+ * link is intercepted in the capture phase and an interstitial is shown before navigation.
  */
 
-const DEFAULT_BACKEND = "http://localhost:8000";
+// Hosted backend, so a freshly installed extension works without running anything locally.
+// Override in the popup for a local backend (http://localhost:8000).
+const DEFAULT_BACKEND = "https://scanshield-ii9n.onrender.com";
 let scannedUrls = new Set();
+/** url (normalised) -> { risk, reason } so the click handler can decide without a round trip. */
+let results = new Map();
 let isScanning = false;
+
+function normUrl(u) {
+  try {
+    return String(u).replace(/\/$/, "");
+  } catch {
+    return String(u);
+  }
+}
+
+function lookupResult(url) {
+  return results.get(normUrl(url));
+}
 
 async function getConfig() {
   return new Promise(resolve => {
@@ -202,6 +219,7 @@ async function scanOnce() {
       const url = queue.shift();
       scannedUrls.add(url);
       const result = await checkUrl(url, cfg.backendUrl);
+      results.set(normUrl(url), result);
       // Find all anchors matching this url and highlight
       document.querySelectorAll(`a[href]`).forEach(a => {
         try {
@@ -220,6 +238,106 @@ async function scanOnce() {
   await Promise.all(workers);
   isScanning = false;
   console.log(`[ScamShield] scan complete — checked ${fresh.length} URLs`);
+}
+
+// ---------------------------------------------------------------------------
+// Realtime block: intercept the click, not just the render.
+// Capture phase + stopImmediatePropagation so a page's own click handlers (SPA routers,
+// analytics wrappers) cannot navigate behind our back.
+// ---------------------------------------------------------------------------
+
+let interstitialOpen = false;
+/** URLs the user explicitly chose to visit anyway — never nag twice for the same link. */
+const userApproved = new Set();
+
+function onLinkActivate(e) {
+  if (interstitialOpen) return;
+  if (e.button !== undefined && e.button !== 0 && e.type === "click") return;
+  const anchor = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+  if (!anchor || !anchor.href) return;
+  const href = anchor.href;
+  if (userApproved.has(normUrl(href))) return;
+  const result = lookupResult(href);
+  if (!result) return; // not scanned yet (or scan failed) — do not block on unknown
+  const risk = badgeForRisk(result.risk);
+  if (risk !== "high" && risk !== "medium") return;
+
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+  showBlockInterstitial(href, result, anchor);
+}
+
+document.addEventListener("click", onLinkActivate, true);
+document.addEventListener("auxclick", onLinkActivate, true);
+
+function showBlockInterstitial(url, result, anchor) {
+  interstitialOpen = true;
+  const risk = badgeForRisk(result.risk);
+  const high = risk === "high";
+
+  const overlay = document.createElement("div");
+  overlay.className = "scamshield-block-overlay";
+  overlay.innerHTML = `
+    <div class="scamshield-block-card">
+      <div class="scamshield-block-icon">${high ? "🛑" : "⚠️"}</div>
+      <div class="scamshield-block-title">${high ? "ScamShield blocked this link" : "ScamShield: suspicious link"}</div>
+      <div class="scamshield-block-reason"></div>
+      <div class="scamshield-block-url"></div>
+      <div class="scamshield-block-advice">
+        Do not enter passwords, card details or any OTP/PIN on this page.
+      </div>
+      <div class="scamshield-block-actions">
+        <button class="scamshield-btn scamshield-btn-primary" data-act="back">Go back (safe)</button>
+        <button class="scamshield-btn" data-act="report">Report as scam</button>
+        <button class="scamshield-btn scamshield-btn-ghost" data-act="go">Continue anyway</button>
+      </div>
+    </div>
+  `;
+  // textContent (not innerHTML) for backend-supplied strings and the URL — a reason field is
+  // attacker-influenced content and must never be parsed as markup.
+  overlay.querySelector(".scamshield-block-reason").textContent =
+    result.reason || (high ? "Flagged as phishing." : "Looks suspicious.");
+  overlay.querySelector(".scamshield-block-url").textContent = url;
+
+  const close = () => {
+    overlay.remove();
+    interstitialOpen = false;
+  };
+
+  overlay.addEventListener("click", async (ev) => {
+    const act = ev.target && ev.target.dataset ? ev.target.dataset.act : null;
+    if (!act) {
+      if (ev.target === overlay) close(); // click backdrop = stay put
+      return;
+    }
+    if (act === "back") {
+      close();
+    } else if (act === "go") {
+      userApproved.add(normUrl(url));
+      close();
+      window.location.href = url;
+    } else if (act === "report") {
+      const btn = ev.target;
+      btn.textContent = "Reporting…";
+      btn.disabled = true;
+      const cfg = await getConfig();
+      try {
+        const r = await fetch(`${cfg.backendUrl.replace(/\/$/, "")}/report`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ numberOrUrl: url, category: "phishing link" }),
+        });
+        btn.textContent = r.ok ? "Reported ✓" : "Failed — retry";
+        btn.disabled = !r.ok;
+      } catch {
+        btn.textContent = "Backend unreachable";
+        btn.disabled = false;
+      }
+    }
+  });
+
+  document.documentElement.appendChild(overlay);
 }
 
 // Initial scan + observe SPA navigations and DOM mutations
@@ -251,7 +369,7 @@ try {
 // Listen for popup toggle messages
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg && msg.type === "SCAMSHIELD_RESCAN") {
-    if (msg.clear) scannedUrls.clear();
+    if (msg.clear) { scannedUrls.clear(); results.clear(); }
     // remove existing highlights if re-scan requested
     document.querySelectorAll(".scamshield-badge").forEach(n => n.remove());
     document.querySelectorAll("[data-scamshield-checked]").forEach(n => {

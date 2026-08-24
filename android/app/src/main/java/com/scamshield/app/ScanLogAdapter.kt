@@ -49,7 +49,19 @@ class ScanLogAdapter(
         h.cat.text = item.category
         h.reason.text = item.reason
         h.snippet.text = item.snippet
-        h.time.text = fmt.format(Date(item.timestamp)) + " • " + item.advisedAction
+        // Show where it came from, so a WhatsApp hit is distinguishable from a screen scan and the
+        // user knows which app to go delete it in.
+        val origin = when (item.source) {
+            "whatsapp" -> "WhatsApp"
+            "whatsapp_test" -> "WhatsApp self-test"
+            "chrome_block" -> "Blocked link"
+            "bubble" -> "Screen scan"
+            "manual" -> "Manual"
+            "sms" -> "SMS"
+            else -> item.source
+        }
+        val who = item.sender?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""
+        h.time.text = fmt.format(Date(item.timestamp)) + " • " + origin + who + " • " + item.advisedAction
         // Color the card by risk
         (h.itemView as? com.google.android.material.card.MaterialCardView)?.strokeColor = when(item.overallRisk) {
             "high" -> 0xFFFF3B30.toInt()
