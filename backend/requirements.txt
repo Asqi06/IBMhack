@@ -1,0 +1,10 @@
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+httpx==0.27.0
+python-dotenv==1.0.1
+pydantic==2.6.4
+python-multipart==0.0.9
+# Cloud ledger persistence. Only imported when DATABASE_URL is set — local dev with
+# SQLite never touches it (see agents/ledger_store.py). [binary] ships prebuilt libpq
+# so the image needs no build toolchain or libpq-dev.
+psycopg[binary,pool]==3.1.18

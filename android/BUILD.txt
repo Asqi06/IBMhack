@@ -1,0 +1,21 @@
+ScamShield Android — native build quick reference
+
+MVP WIDGET LOCATION
+- Floating chat-head: app/src/main/java/com/scamshield/app/FloatingWidgetService.kt
+  layout: app/src/main/res/layout/view_floating_widget.xml
+  started by: app/src/main/java/com/scamshield/app/MainActivity.kt -> startFloatingService()
+- Home launcher widget: app/src/main/java/com/scamshield/app/ScamShieldWidgetProvider.kt
+
+NATIVE CHECK
+- Kotlin, minSdk 26, namespace com.scamshield.app, app/build.gradle
+- WindowManager + MediaProjection + ML Kit + OkHttp (no React Native/Flutter)
+
+BUILD
+- Android Studio: Open F:\ibm hackathon\android -> Sync -> Run (choose emulator or USB device)
+- CLI: .\gradlew assembleDebug -> app\build\outputs\apk\debug\app-debug.apk -> adb install -r ...
+- Backend must be running: cd ..\backend; uvicorn main:app --host 0.0.0.0 --port 8000
+
+PERMISSIONS GRANT ORDER
+1. SYSTEM_ALERT_WINDOW (Display over other apps)
+2. MediaProjection (one-time "Start now")
+3. Tap bubble to scan; image never leaves device

@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">ScamShield</string>
+    <string name="enable_overlay">Enable Floating Widget</string>
+    <string name="overlay_permission_needed">Overlay permission required — enable \"Display over other apps\"</string>
+    <string name="backend_url_hint">Backend URL (e.g. http://10.0.2.2:8000 for emulator)</string>
+    <string name="tap_to_scan">Tap the bubble to scan screen</string>
+    <string name="scanning">Scanning…</string>
+    <string name="report_as_scam">Report as Scam</string>
+    <string name="scan_sms">Auto-scan incoming SMS (Retriever API)</string>
+    <string name="widget_desc">ScamShield home widget — tap to open scanner. Main MVP is the floating chat-head bubble.</string>
+</resources>

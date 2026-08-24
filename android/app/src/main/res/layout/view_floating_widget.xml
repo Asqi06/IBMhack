@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <!-- iOS pulse — ultra subtle -->
+    <View
+        android:id="@+id/pulseRing"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_gravity="center"
+        android:background="@drawable/pulse_ring"
+        android:alpha="0.35"/>
+
+    <!-- Apple AssistiveTouch-style bubble -->
+    <LinearLayout
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/bubble"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:elevation="8dp"
+            app:cardCornerRadius="30dp"
+            app:cardBackgroundColor="#FFFFFF"
+            app:strokeWidth="0.5dp"
+            app:strokeColor="#E5E5EA">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/ios_bubble_bg">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="◈"
+                    android:textSize="24sp"
+                    android:textColor="#007AFF"
+                    android:fontFamily="sans-serif-medium"/>
+            </FrameLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SCAN"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08"
+            android:textColor="#8E8E93"
+            android:layout_marginTop="6dp"/>
+    </LinearLayout>
+
+    <!-- iOS grouped result card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/floatResultCard"
+        android:visibility="gone"
+        android:layout_width="320dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="86dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="8dp"
+        app:strokeWidth="0.5dp"
+        app:strokeColor="#E5E5EA">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp"
+                android:background="#FFFFFF"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="@color/ios_blue"
+                    android:gravity="center"
+                    android:text="◈"
+                    android:textSize="12sp"
+                    android:textColor="#FFFFFF" />
+
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_marginStart="10dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:id="@+id/floatOverallRisk"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="#000000"
+                        android:letterSpacing="-0.01"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:text="ScamShield • On-device"
+                        android:textSize="11sp"
+                        android:textColor="#8E8E93"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="#E5E5EA"/>
+
+            <LinearLayout
+                android:padding="12dp"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/floatReason"
+                    android:textSize="13sp"
+                    android:textColor="#1C1C1E"
+                    android:lineSpacingExtra="2dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:id="@+id/floatDetails"
+                    android:textSize="11sp"
+                    android:textColor="#8E8E93"
+                    android:background="#F2F2F7"
+                    android:padding="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:id="@+id/floatReportBtn"
+                    android:text="Report"
+                    android:textSize="14sp"
+                    android:textColor="#007AFF"
+                    android:gravity="center"
+                    android:padding="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:layout_marginTop="8dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"/>
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+</FrameLayout>

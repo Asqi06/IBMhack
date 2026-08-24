@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ios_bg"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="24dp">
+
+        <!-- iOS Navigation Bar -->
+        <LinearLayout
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="16dp"
+            android:background="@color/ios_card"
+            android:elevation="1dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:text="ScamShield"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/ios_label"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:text="On-device OCR • Granite • Ledger"
+                    android:textSize="12sp"
+                    android:textColor="@color/ios_gray"
+                    android:letterSpacing="0.02"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/liveChip"
+                android:text="● LIVE"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:textColor="#4ADE80"
+                android:background="#334ADE80"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <!-- Section Header -->
+        <TextView
+            android:text="CONNECTION"
+            android:textSize="12sp"
+            android:textColor="@color/ios_gray"
+            android:letterSpacing="0.06"
+            android:padding="16dp"
+            android:paddingBottom="6dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- Backend Card — iOS grouped -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0.5dp"
+            app:strokeColor="@color/ios_separator">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@color/ios_blue"
+                        android:gravity="center"
+                        android:text="⌖"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:text="Backend URL"
+                        android:textSize="15sp"
+                        android:textColor="@color/ios_label"
+                        android:layout_marginStart="12dp"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:id="@+id/backendStateChip"
+                        android:text="Code Engine"
+                        android:textSize="11sp"
+                        android:textColor="@color/ios_blue"
+                        android:background="@color/ios_blue_light"
+                        android:paddingHorizontal="6dp"
+                        android:paddingVertical="2dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="@color/ios_separator" android:layout_marginStart="52dp"/>
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/backendUrlInput"
+                    android:hint="http://10.0.2.2:8000"
+                    android:text="http://10.0.2.2:8000"
+                    android:textSize="15sp"
+                    android:textColor="@color/ios_label"
+                    android:textColorHint="@color/ios_gray2"
+                    android:background="@android:color/transparent"
+                    android:padding="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textUri" />
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="@color/ios_separator"/>
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:id="@+id/graniteChip"
+                        android:text="Granite-4"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        android:background="#1E40AF"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="4dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:id="@+id/ledgerChip"
+                        android:text="Hash-chain"
+                        android:textSize="10sp"
+                        android:textColor="#FFFFFF"
+                        android:background="#1E40AF"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="4dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:text="ML Kit OCR"
+                        android:textSize="10sp"
+                        android:textColor="#FFFFFF"
+                        android:background="#1E40AF"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="4dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                <TextView
+                    android:text="Emulator → 10.0.2.2  •  Device → 192.168.1.6  •  System shows health at /health"
+                    android:textSize="11sp"
+                    android:textColor="@color/ios_gray"
+                    android:padding="12dp"
+                    android:paddingTop="0dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:text="BUBBLE"
+            android:textSize="12sp"
+            android:textColor="@color/ios_gray"
+            android:letterSpacing="0.06"
+            android:padding="16dp"
+            android:paddingBottom="6dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- Bubble Controls — iOS cells with chevron -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0.5dp"
+            app:strokeColor="@color/ios_separator">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <!-- Enable -->
+                <LinearLayout
+                    android:id="@+id/enableOverlayBtn"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="14dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@color/ios_green"
+                        android:gravity="center"
+                        android:text="◐"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:text="Enable Floating Widget"
+                        android:textSize="15sp"
+                        android:textColor="@color/ios_label"
+                        android:layout_marginStart="12dp"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView android:text="›" android:textSize="20sp" android:textColor="#C7C7CC" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="@color/ios_separator" android:layout_marginStart="54dp"/>
+
+                <!-- Start -->
+                <LinearLayout
+                    android:id="@+id/startWidgetBtn"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="14dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@color/ios_blue"
+                        android:gravity="center"
+                        android:text="✦"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:text="Start bubble"
+                        android:textSize="15sp"
+                        android:textColor="@color/ios_blue"
+                        android:layout_marginStart="12dp"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView android:text="›" android:textSize="20sp" android:textColor="#C7C7CC" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="@color/ios_separator" android:layout_marginStart="54dp"/>
+
+                <LinearLayout
+                    android:id="@+id/bringToFrontBtn"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="14dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="#F2F2F7"
+                        android:gravity="center"
+                        android:text="↗"
+                        android:textColor="@color/ios_blue"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:text="Bring to front"
+                        android:textSize="15sp"
+                        android:textColor="@color/ios_label"
+                        android:layout_marginStart="12dp"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView android:text="›" android:textSize="20sp" android:textColor="#C7C7CC" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Status — iOS banner -->
+        <TextView
+            android:id="@+id/bubbleStatusText"
+            android:text="Bubble: not running"
+            android:textSize="12sp"
+            android:textColor="@color/ios_secondary"
+            android:background="@color/ios_card"
+            android:padding="12dp"
+            android:layout_margin="16dp"
+            android:layout_marginTop="8dp"
+            android:elevation="0dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:text="MANUAL TEST"
+            android:textSize="12sp"
+            android:textColor="@color/ios_gray"
+            android:letterSpacing="0.06"
+            android:padding="16dp"
+            android:paddingBottom="6dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0.5dp"
+            app:strokeColor="@color/ios_separator">
+
+            <LinearLayout
+                android:padding="12dp"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/manualTextInput"
+                    android:hint="Paste suspicious message…"
+                    android:minLines="3"
+                    android:gravity="top|start"
+                    android:background="#F2F2F7"
+                    android:padding="12dp"
+                    android:textSize="15sp"
+                    android:inputType="textMultiLine"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/analyzeManualBtn"
+                    android:text="Analyze"
+                    android:textColor="#FFFFFF"
+                    app:cornerRadius="10dp"
+                    android:backgroundTint="@color/ios_blue"
+                    android:elevation="0dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <include layout="@layout/view_result_card"/>
+
+        <TextView
+            android:id="@+id/statusText"
+            android:textSize="12sp"
+            android:textColor="@color/ios_gray"
+            android:padding="16dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:text="Privacy • Screenshots never leave device. Only text → Granite. No audio, no READ_SMS. Ledger: number/URL + category + timestamp only.  — Apple-inspired UI"
+            android:textSize="11sp"
+            android:textColor="@color/ios_gray"
+            android:gravity="center"
+            android:padding="16dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+</ScrollView>

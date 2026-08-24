@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ScamShield talks to a backend whose URL the user types into the app at runtime
+  (http://10.0.2.2:8000 on the emulator, http://<PC-LAN-IP>:8000 from a physical device,
+  or a deployed https:// Code Engine URL). Because the host is not known at build time we
+  cannot whitelist specific domains, so cleartext is permitted at the base config.
+
+  Trade-off, stated plainly: this allows plain-HTTP traffic app-wide. Fine for a local demo
+  backend on a trusted network. For a production release, drop this file, serve the backend
+  over HTTPS, and let the API-28+ default (cleartext blocked) stand.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,55 @@
+/* ScamShield highlight styles — injected by content.js */
+.scamshield-high {
+  outline: 2px solid #e53935 !important;
+  outline-offset: 2px;
+  background: rgba(229, 57, 53, 0.08) !important;
+  border-radius: 4px;
+  position: relative;
+}
+.scamshield-medium {
+  outline: 2px solid #fb8c00 !important;
+  outline-offset: 2px;
+  background: rgba(251, 140, 0, 0.08) !important;
+  border-radius: 4px;
+}
+.scamshield-low {
+  outline: 2px dashed #43a04722 !important;
+}
+.scamshield-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  line-height: 16px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+.scamshield-badge-high {
+  background: #e53935;
+  color: #fff;
+}
+.scamshield-badge-medium {
+  background: #fb8c00;
+  color: #fff;
+}
+.scamshield-badge-low {
+  background: #43a047;
+  color: #fff;
+}
+.scamshield-tooltip {
+  position: absolute;
+  z-index: 2147483647;
+  background: #1e1e1e;
+  color: #fff;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  max-width: 280px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.4;
+}

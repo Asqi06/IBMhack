@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.ScamShield" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/ios_blue</item>
+        <item name="colorSecondary">@color/ios_blue</item>
+        <item name="android:statusBarColor">@color/ios_card</item>
+        <item name="android:navigationBarColor">@color/ios_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>
