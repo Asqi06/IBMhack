@@ -91,6 +91,7 @@ class QrScannerActivity : AppCompatActivity() {
         val overall = json.optString("overallRisk", "unknown")
         val type = json.optString("type", "text")
         val risk = overall.lowercase()
+        if (risk == "high" || risk == "medium") VibrationHelper.vibrateTriple(this)
         val color = when (risk) { "high" -> "#E53935".toColorInt(); "medium" -> "#FB8C00".toColorInt(); else -> "#43A047".toColorInt() }
         val card = findViewById<MaterialCardView>(R.id.qrResultCard)
         card.visibility = View.VISIBLE

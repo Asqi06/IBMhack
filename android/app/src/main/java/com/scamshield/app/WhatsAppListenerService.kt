@@ -106,6 +106,7 @@ class WhatsAppListenerService : NotificationListenerService() {
             try {
                 val res = ApiClient.analyze(full, backendUrl)
                 if (res.overallRisk == "high" || res.overallRisk == "medium") {
+                    VibrationHelper.vibrateTriple(this@WhatsAppListenerService)
                     // Log to Room
                     val db = AppDatabase.get(this@WhatsAppListenerService)
                     val primary = res.details.firstOrNull { it.source == "text" }

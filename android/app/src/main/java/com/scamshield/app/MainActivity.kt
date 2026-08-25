@@ -786,6 +786,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun logDangerAndAdvise(text: String, res: AnalyzeResult, source: String) {
+        VibrationHelper.vibrateTriple(this)
         val primary = res.details.firstOrNull { it.source == "text" }
         val log = ScanLog(
             overallRisk = res.overallRisk,

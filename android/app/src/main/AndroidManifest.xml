@@ -25,6 +25,8 @@
     <uses-permission android:name="android.permission.READ_CALL_LOG" tools:node="remove" />
     <!-- QR / UPI scanner -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Vibration for scam alert (3 buzzes) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="true"

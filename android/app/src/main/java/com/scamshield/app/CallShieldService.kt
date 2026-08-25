@@ -200,6 +200,7 @@ class CallShieldService : Service() {
     }
 
     private fun showDanger(chunk: String, res: AnalyzeResult) {
+        VibrationHelper.vibrateTriple(this)
         val primary = res.details.firstOrNull { it.source == "text" }
         val reason = primary?.reason ?: res.details.firstOrNull()?.reason ?: "Possible scam detected"
         val title = "🔴 SCAM ALERT — ${res.overallRisk.uppercase()} (${primary?.category ?: "OTP scam"})"

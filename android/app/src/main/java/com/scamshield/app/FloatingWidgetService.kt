@@ -552,6 +552,7 @@ class FloatingWidgetService : Service() {
      * moment the result card faded — nothing to review, delete, or block later.
      */
     private fun logDangerAndWarn(text: String, res: AnalyzeResult) {
+        VibrationHelper.vibrateTriple(this)
         val primary = res.details.firstOrNull { it.source == "text" }
         val category = primary?.category ?: "phishing link"
         val reason = primary?.reason ?: res.details.firstOrNull()?.reason ?: "This looks like a scam."
@@ -608,6 +609,7 @@ class FloatingWidgetService : Service() {
     }
 
     private fun showResult(overallRisk: String, details: List<AnalyzeDetail>) {
+        if (overallRisk.equals("high", true) || overallRisk.equals("medium", true)) VibrationHelper.vibrateTriple(this)
         // No overlay (inflate/attach failed, or overlay permission revoked)? Scanning still worked,
         // so deliver the verdict through the notification rather than dropping it silently.
         val card = floatView?.findViewById<View>(R.id.floatResultCard) ?: run {

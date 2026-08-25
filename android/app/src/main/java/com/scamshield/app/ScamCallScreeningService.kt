@@ -69,6 +69,7 @@ class ScamCallScreeningService : CallScreeningService() {
     }
 
     private fun showWarning(number: String, count: Int, category: String?) {
+        VibrationHelper.vibrateTriple(this)
         try {
             val nm = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
             val ch = android.app.NotificationChannel("scamshield_callerid", "Caller ID Guard", android.app.NotificationManager.IMPORTANCE_HIGH)
