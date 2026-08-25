@@ -3,6 +3,7 @@ package com.scamshield.app
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -40,6 +41,29 @@ class CallTranscriptionHelper(
         recognizer = null
     }
 
+    // Mute system beep that SpeechRecognizer fires onReadyForSpeech (ruins call otherwise)
+    private fun muteBeep(mute: Boolean) {
+        try {
+            val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            if (Build.VERSION.SDK_INT >= 23) {
+                if (mute) {
+                    am.adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_MUTE, 0)
+                    am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
+                    am.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0)
+                } else {
+                    am.adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_UNMUTE, 0)
+                    am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0)
+                    am.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_UNMUTE, 0)
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                am.setStreamMute(AudioManager.STREAM_SYSTEM, mute)
+                @Suppress("DEPRECATION")
+                am.setStreamMute(AudioManager.STREAM_MUSIC, mute)
+            }
+        } catch (_: Exception) {}
+    }
+
     private fun startOnce() {
         if (!shouldContinue) return
         try { recognizer?.cancel(); recognizer?.destroy() } catch (_: Exception) {}
@@ -59,9 +83,13 @@ class CallTranscriptionHelper(
         }
         try {
             isListening = true
+            muteBeep(true)
             recognizer?.startListening(intent)
+            // unmute shortly after beep window
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ muteBeep(false) }, 800)
         } catch (e: Exception) {
             Log.e("CallTranscription", "startListening failed", e)
+            muteBeep(false)
             scheduleRestart()
         }
     }
@@ -75,9 +103,11 @@ class CallTranscriptionHelper(
         override fun onError(error: Int) {
             Log.w("CallTranscription", "STT error $error")
             isListening = false
+            muteBeep(false)
             if (shouldContinue) scheduleRestart()
         }
         override fun onResults(results: Bundle?) {
+            muteBeep(false)
             val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             val text = matches?.firstOrNull()?.trim().orEmpty()
             if (text.isNotBlank() && text.length > 3) {

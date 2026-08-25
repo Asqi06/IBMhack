@@ -39,6 +39,8 @@ class CallShieldService : Service() {
     private var backendUrl: String = "https://scanshield-ii9n.onrender.com"
     private val callBuffer = StringBuilder()
     private var lastAnalyzeJob: Job? = null
+    private var lastHighAlertAt: Long = 0L
+    private var lastHighSignature: String = ""
 
     private val phoneListener = object : PhoneStateListener() {
         override fun onCallStateChanged(state: Int, phoneNumber: String?) {
@@ -125,7 +127,9 @@ class CallShieldService : Service() {
     private fun onCallStarted(number: String?) {
         chunkId = 0
         callBuffer.clear()
-        updateNotification("Call active — analyzing for OTP/kyc scams… (speaker ON recommended)")
+        lastHighAlertAt = 0L
+        lastHighSignature = ""
+        updateNotification("Call active — silent guard (vibrates only if scam detected)")
         startTranscription()
     }
 
@@ -182,16 +186,24 @@ class CallShieldService : Service() {
 
     private suspend fun analyzeChunk(chunk: String) {
         try {
-            // Use analyze-call so callerId ledger is included
             val res = ApiClient.analyzeCall(chunk, backendUrl, callerId, chunkId)
-            if (res.overallRisk.equals("high", true)) {
-                showDanger(chunk, res)
-                // Haptic + alert
-            } else if (res.overallRisk.equals("medium", true)) {
-                updateNotification("⚠️ Suspicious phrase detected: ${res.details.firstOrNull()?.reason?.take(60)}")
+            val risk = res.overallRisk.lowercase()
+            // MEDIUM: silently log, do NOT update notification/vibrate (avoids spam during normal talk)
+            // HIGH: alert, but debounced so repeated high chunks don't ruin the call
+            if (risk == "high") {
+                val sig = res.details.firstOrNull { it.source == "text" }?.category ?: "OTP scam"
+                val now = System.currentTimeMillis()
+                val sameAsLast = sig == lastHighSignature
+                val withinCooldown = now - lastHighAlertAt < 45_000
+                if (!withinCooldown || !sameAsLast) {
+                    showDanger(chunk, res)
+                    lastHighAlertAt = now
+                    lastHighSignature = sig
+                } else {
+                    android.util.Log.i("CallShield", "high suppressed (cooldown) sig=$sig")
+                }
             }
-            // Also log dangerous to Room
-            if (res.overallRisk.equals("high", true) || res.overallRisk.equals("medium", true)) {
+            if (risk == "high" || risk == "medium") {
                 logToRoom(chunk, res)
             }
         } catch (e: Exception) {
@@ -206,7 +218,9 @@ class CallShieldService : Service() {
         val title = "🔴 SCAM ALERT — ${res.overallRisk.uppercase()} (${primary?.category ?: "OTP scam"})"
         // High-importance notification
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val channel = NotificationChannel("scamshield_call_alert", "Call Shield Alerts", NotificationManager.IMPORTANCE_HIGH)
+        val channel = NotificationChannel("scamshield_call_alert", "Call Shield Alerts", NotificationManager.IMPORTANCE_HIGH).apply {
+            enableVibration(false); setSound(null, null)
+        }
         nm.createNotificationChannel(channel)
         val open = Intent(this, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP }
         val pending = android.app.PendingIntent.getActivity(this, 99, open, android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE)
@@ -217,11 +231,13 @@ class CallShieldService : Service() {
             .setContentText(reason)
             .setStyle(NotificationCompat.BigTextStyle().bigText("$reason\n\nHeard: \"${chunk.take(120)}\"\n\nAdvised: Do NOT share OTP/PIN. Hang up and verify via official app."))
             .setContentIntent(pending)
-            .setAutoCancel(false)
+            .setAutoCancel(true)
             .setOngoing(false)
             .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setSound(null)
+            .setVibrate(null)
             .build()
-        nm.notify(4000 + chunkId, notif)
+        nm.notify(4000, notif)
         updateNotification("🔴 SCAM DETECTED — ${primary?.category}: $reason")
         // Toast for immediate feedback
         Toast.makeText(this, "⚠️ SCAM DETECTED: $reason", Toast.LENGTH_LONG).show()
@@ -245,8 +261,17 @@ class CallShieldService : Service() {
 
     private fun createChannel() {
         val ch = NotificationChannel(CHANNEL_ID, "Call Shield", NotificationManager.IMPORTANCE_LOW)
-        ch.description = "Live call scam detection"
+        ch.description = "Live call scam detection — silent unless scam"
+        ch.enableVibration(false)
+        ch.enableLights(false)
+        ch.setSound(null, null)
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(ch)
+        // High alert channel — silent too, we vibrate via VibrationHelper only (no double buzz)
+        val alert = NotificationChannel("scamshield_call_alert", "Call Shield Alerts", NotificationManager.IMPORTANCE_HIGH)
+        alert.description = "High-risk call alerts"
+        alert.enableVibration(false)
+        alert.setSound(null, null)
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(alert)
     }
 
     private fun buildNotification(text: String) = NotificationCompat.Builder(this, CHANNEL_ID)
