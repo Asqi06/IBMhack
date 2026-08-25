@@ -10,8 +10,8 @@ from typing import Dict
 
 from .watsonx_client import generate
 
-# Tuned prompt — separates promotional (low) from scam (high)
-# Keeps original intent but adds guard for legitimate marketing
+# Tuned prompt — separates promotional (low) from scam (high) + multilingual (EN/Hinglish/Hindi)
+# Keeps original intent but adds guard for legitimate marketing + India languages
 PROMPT_TEMPLATE = """You are a fraud-detection assistant protecting users in India from scams.
 Given a message, classify it and respond ONLY in this exact JSON format,
 nothing else, no explanation outside the JSON:
@@ -22,8 +22,8 @@ nothing else, no explanation outside the JSON:
   "reason": "one short sentence explaining why"
 }
 
-Look specifically for: urgency language ("act now", "account will be blocked"),
-requests to share an OTP or PIN, fake bank/government/delivery impersonation,
+Look specifically for: urgency language ("act now", "account will be blocked", "तुरंत", "खाता बंद हो जाएगा"),
+requests to share an OTP or PIN ("OTP share karo", "OTP batao", "ओटीपी भेजें"), fake bank/government/delivery impersonation,
 suspicious or shortened links, and unusual payment/refund requests.
 
 IMPORTANT — promotional vs scam:
@@ -32,6 +32,15 @@ IMPORTANT — promotional vs scam:
   and links to a legitimate brand domain should be "low" / "none" — not spam.
 - Only flag as high/medium when at least one strong scam signal is present.
 - When in doubt and no scam signal is present, prefer "low".
+
+MULTILINGUAL — Hindi / Hinglish / transliterated:
+- Scam patterns appear in Hindi and Hinglish too. Examples that MUST be high risk:
+  EX1: "आपका खाता बंद हो जाएगा, तुरंत OTP बताएं" -> high / OTP scam
+  EX2: "aapka account band ho jayega, abhi OTP share karo warna KYC fail ho jayega" -> high / fake refund/KYC
+  EX3: "SBI se bol raha hu, verification ke liye OTP bhejiye" -> high / impersonation
+  EX4: "आपका KYC अपडेट करना है, इस लिंक पर क्लिक करें http://sbi-kyc-update.in" -> high / phishing link
+- Normal Hindi promo is low: "मिंत्रा पर 50% छूट, कूपन SAVE50" -> low / none
+- Transliterated urgency also counts: "turant", "jaldi", "abhii", "band ho jayega", "suspended"
 
 If the message is ordinary, promotional, or shows none of the scam patterns, return risk "low"
 and category "none".
@@ -109,8 +118,10 @@ def _normalize(result: Dict) -> Dict:
 def _is_promotional(message: str) -> bool:
     """Heuristic: true if message looks like legitimate marketing, not scam."""
     m = message.lower()
-    promo_kw = ["offer", "discount", "sale", "promo", "coupon", "cashback", "deal", "flat", "% off", "shop now", "limited time", "hurry"]
-    scam_kw = ["otp", "pin", "kyc", "blocked", "blocked", "account will be", "refund", "verify", "suspended", "urgent", "act now", "share otp"]
+    promo_kw = ["offer", "discount", "sale", "promo", "coupon", "cashback", "deal", "flat", "% off", "shop now", "limited time", "hurry",
+                "छूट", "ऑफर", "कूपन", "सेल"]
+    scam_kw = ["otp", "pin", "kyc", "blocked", "blocked", "account will be", "refund", "verify", "suspended", "urgent", "act now", "share otp",
+               "ओटीपी", "खाता बंद", "बंद हो जाएगा", "तुरंत", "सत्यापन", "बताएं"]
     has_promo = any(k in m for k in promo_kw)
     has_scam = any(k in m for k in scam_kw)
     # If it has promo language but no strong scam signal, treat as promotional

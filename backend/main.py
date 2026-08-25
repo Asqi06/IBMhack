@@ -1,26 +1,30 @@
 """
 main.py — FastAPI app exposing ScamShield endpoints (Section 4).
+Extended for v1.2: live-call shield, QR/UPI, multilingual.
 
 POST /analyze — {text}
+POST /analyze-call — {text, callerId?, chunkId?, isLive?} live-call streaming (wraps /analyze)
+POST /transcribe — multipart audio upload -> transcript -> analyze (Whisper/fallback)
+POST /scan-qr — {qrData} QR/UPI string
 POST /report  — {numberOrUrl, category}
 GET  /check/{numberOrUrl}
 GET  /health  — drives the app's "Connected" chip: store, entry count, Granite mode
-GET  /warmup  — cheap ping so a scaled-to-zero cloud instance is awake before the
-                first scan (Render free / Code Engine min-scale 0 both sleep)
-GET  /logs    — recent request log, in-memory ring buffer (demo + debugging)
-GET  /ledger/verify (demo helper)
-POST /scan-url (helper for Chrome extension — single URL check)
+GET  /warmup
+GET  /logs
+GET  /ledger/verify
+POST /scan-url
 """
 import logging
 import os
 import sys
 import time
 import uuid
+import re
 from collections import deque
 from contextlib import asynccontextmanager
 from typing import Deque, Dict, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi import Path as FastPath
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -40,7 +44,7 @@ PORT = int(os.getenv("PORT", "8000"))
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
 LEDGER_MODE = os.getenv("LEDGER_MODE", "fallback")
 MOCK_GRANITE = os.getenv("MOCK_GRANITE", "false").lower() in ("1", "true", "yes")
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 # stdout, unbuffered (see Dockerfile PYTHONUNBUFFERED) so Render / Code Engine log
 # viewers show these live rather than in delayed 4 KB chunks.
@@ -149,6 +153,17 @@ class ScanUrlRequest(BaseModel):
     url: str = Field(..., examples=["https://arnaz0n-kyc.in/login"])
 
 
+class AnalyzeCallRequest(BaseModel):
+    text: str = Field(..., description="Live call transcript chunk", examples=["aapka account band ho jayega, OTP batao"])
+    callerId: Optional[str] = Field(None, description="Caller phone number if available")
+    chunkId: Optional[int] = Field(None, description="Monotonic chunk id for streaming")
+    isLive: bool = Field(True, description="True if this is a live streaming chunk")
+
+
+class ScanQrRequest(BaseModel):
+    qrData: str = Field(..., description="Decoded QR string (url, upi://, or text)", examples=["upi://pay?pa=scammer@upi&pn=SCAM"])
+
+
 @app.get("/")
 async def root():
     return {
@@ -156,7 +171,7 @@ async def root():
         "version": VERSION,
         "ledgerMode": LEDGER_MODE,
         "mockGranite": MOCK_GRANITE,
-        "endpoints": ["/analyze", "/report", "/check/{numberOrUrl}", "/health", "/warmup", "/logs", "/scan-url", "/ledger/verify"],
+        "endpoints": ["/analyze", "/analyze-call", "/transcribe", "/scan-qr", "/scan-url", "/report", "/check/{numberOrUrl}", "/health", "/warmup", "/logs", "/ledger/verify"],
     }
 
 
@@ -222,6 +237,162 @@ async def analyze(req: AnalyzeRequest):
         len(m.get("detectedUrls", [])), len(m.get("detectedPhones", [])), m.get("timings"),
     )
     return result
+
+
+@app.post("/analyze-call")
+async def analyze_call(req: AnalyzeCallRequest):
+    """
+    Live-call streaming endpoint. Same orchestrator as /analyze but with caller context.
+    Frontend chunks 4s transcripts -> this endpoint -> immediate risk + advisory.
+    Sliding-window: callerId is echoed and also checked against ledger.
+    """
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=400, detail="text is required")
+    # If callerId known, prepend to text for ledger correlation but analyze the transcript
+    result = await orchestrator.analyze(req.text)
+    # If callerId supplied, also attach ledger reputation for that number
+    if req.callerId and req.callerId.strip():
+        ledger = await check_number_reputation(req.callerId.strip())
+        result.setdefault("details", []).append({
+            "source": "callerId",
+            "number": req.callerId.strip(),
+            "reported": ledger.get("reported", False),
+            "reportCount": ledger.get("reportCount", 0),
+            "riskLevel": ledger.get("riskLevel", "low"),
+            "mode": ledger.get("mode", "fallback"),
+        })
+        # callerId high risk upgrades overall
+        if ledger.get("riskLevel") == "high" and result.get("overallRisk") != "high":
+            # keep max logic: ledger high dominates if transcript was medium/low
+            order = {"high": 3, "medium": 2, "low": 1, "unknown": 0}
+            cur = order.get(result.get("overallRisk", "low"), 0)
+            if order["high"] > cur:
+                result["overallRisk"] = "high"
+    result["callMeta"] = {"callerId": req.callerId, "chunkId": req.chunkId, "isLive": req.isLive}
+    m = result.get("meta", {})
+    log.info("analyze-call: caller=%s chunk=%s risk=%s chars=%s", req.callerId, req.chunkId, result.get("overallRisk"), m.get("textLength"))
+    return result
+
+
+@app.post("/transcribe")
+async def transcribe(audio: UploadFile = File(...), language: Optional[str] = Form(None)):
+    """
+    Audio upload -> transcript -> analyze. Tries faster-whisper if installed, else returns
+    error directing caller to send transcript text via /analyze-call. This keeps the endpoint
+    usable even without heavy ML deps on Code Engine free tier.
+    """
+    data = await audio.read()
+    if not data or len(data) < 100:
+        raise HTTPException(status_code=400, detail="empty audio")
+    # Try whisper if available
+    transcript = None
+    try:
+        import tempfile, os
+        # lazy import so missing dep doesn't break app startup
+        try:
+            from faster_whisper import WhisperModel  # type: ignore
+            has_fw = True
+        except ImportError:
+            try:
+                import whisper  # openai-whisper
+                has_fw = False
+                has_whisper = True
+            except ImportError:
+                has_whisper = False
+                has_fw = False
+            else:
+                has_whisper = True
+        if has_fw:
+            with tempfile.NamedTemporaryFile(delete=False, suffix="-" + (audio.filename or "audio.wav")) as tf:
+                tf.write(data)
+                tf.flush()
+                tmp = tf.name
+            try:
+                model = WhisperModel("tiny", device="cpu", compute_type="int8")
+                segments, _ = model.transcribe(tmp, language=language)
+                transcript = " ".join(s.text for s in segments).strip()
+            finally:
+                try: os.remove(tmp)
+                except: pass
+        elif has_whisper:
+            import whisper
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tf:
+                tf.write(data)
+                tf.flush()
+                tmp = tf.name
+            try:
+                model = whisper.load_model("tiny")
+                res = model.transcribe(tmp, language=language)
+                transcript = res.get("text", "").strip()
+            finally:
+                try: os.remove(tmp)
+                except: pass
+    except Exception as e:
+        log.warning("transcribe whisper failed: %s", e)
+    if not transcript:
+        # Graceful fallback: tell client to use text path; still return 200 with flag
+        return {
+            "transcribed": False,
+            "transcript": "",
+            "note": "Whisper not configured on this host. Send transcript text via POST /analyze-call instead.",
+            "overallRisk": "unknown",
+            "details": [],
+        }
+    # Analyze transcript
+    result = await orchestrator.analyze(transcript)
+    return {"transcribed": True, "transcript": transcript, **result}
+
+
+@app.post("/scan-qr")
+async def scan_qr(req: ScanQrRequest):
+    """
+    QR/UPI shield. Decodes qrData string: URL -> url_risk_agent, UPI -> ledger + pattern check, plain text -> orchestrator.
+    Frontend uses ML Kit Barcode to get qrData, backend judges it.
+    """
+    qr = req.qrData.strip()
+    if not qr:
+        raise HTTPException(status_code=400, detail="qrData is required")
+    # UPI pattern: upi://pay?pa=...  or ...@upi / ...@ybl etc
+    is_upi = qr.lower().startswith("upi://") or re.search(r"[\w.\-]{2,}@(upi|ybl|okaxis|okhdfcbank|oksbi|paytm)", qr, re.IGNORECASE)
+    if is_upi:
+        # Extract VPA and check ledger
+        m = re.search(r"pa=([^&]+)", qr, re.IGNORECASE)
+        vpa = m.group(1) if m else qr
+        # also extract pa if bare VPA
+        if not m and "@" in qr:
+            vpa = qr.split()[0]
+        ledger = await check_number_reputation(vpa)
+        # Heuristic: UPI with urgency keywords upgrades
+        text_res = await orchestrator.analyze(qr)
+        # Merge: UPI scams are high if ledger reported or text high
+        overall = text_res.get("overallRisk", "low")
+        if ledger.get("reported"):
+            overall = "high"
+        return {
+            "qrData": qr,
+            "type": "upi",
+            "vpa": vpa,
+            "ledger": ledger,
+            "textAnalysis": text_res,
+            "overallRisk": overall,
+        }
+    # URL-like -> scan-url logic
+    if re.search(r"https?://|www\.|\.in/|\.com|upi://", qr, re.IGNORECASE):
+        # Try url agent
+        from agents.url_risk_agent import check_url as check_single_url
+        # Extract first url
+        urls = orchestrator.extract_urls(qr)
+        target = urls[0] if urls else qr
+        url_res = await check_single_url(target)
+        ledger = await check_number_reputation(target)
+        order = {"high": 3, "medium": 2, "low": 1, "unknown": 0}
+        overall = max([url_res.get("risk", "low"), ledger.get("riskLevel", "low")], key=lambda r: order.get(r, 0))
+        if overall == "unknown":
+            overall = "low"
+        return {"qrData": qr, "type": "url", "urlRisk": url_res, "ledger": ledger, "overallRisk": overall}
+    # Plain text QR (e.g., OTP instructions) -> text analyze
+    text_res = await orchestrator.analyze(qr)
+    return {"qrData": qr, "type": "text", "textAnalysis": text_res, "overallRisk": text_res.get("overallRisk", "low")}
 
 
 @app.post("/report")

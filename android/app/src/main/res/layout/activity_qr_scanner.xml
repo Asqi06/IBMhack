@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="@color/ios_bg"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/qrToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:title="QR / UPI Shield"
+        app:navigationIcon="@android:drawable/ic_menu_close_clear_cancel"
+        android:background="@color/ios_card" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:text="Scan any QR — UPI, URL, or text — to check if it's a scam before you pay or tap."
+                android:textSize="13sp"
+                android:textColor="@color/ios_gray"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/qrScanBtn"
+                android:text="📷 Scan QR with camera"
+                android:textColor="#FFFFFF"
+                app:cornerRadius="10dp"
+                android:backgroundTint="@color/ios_blue"
+                android:layout_marginTop="16dp"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"/>
+
+            <TextView
+                android:text="OR paste QR data (for testing without camera):"
+                android:textSize="12sp"
+                android:textColor="@color/ios_gray"
+                android:layout_marginTop="16dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/qrInput"
+                android:hint="upi://pay?pa=scammer@upi or https://arnaz0n-kyc.in"
+                android:minLines="2"
+                android:gravity="top|start"
+                android:background="#F2F2F7"
+                android:padding="12dp"
+                android:textSize="14sp"
+                android:inputType="textMultiLine"
+                android:layout_marginTop="8dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/qrPasteBtn"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:text="Analyze pasted data"
+                android:layout_marginTop="8dp"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"/>
+
+            <TextView
+                android:id="@+id/qrRawText"
+                android:textSize="12sp"
+                android:textColor="@color/ios_label"
+                android:background="#F2F2F7"
+                android:padding="12dp"
+                android:visibility="gone"
+                android:layout_marginTop="12dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:id="@+id/qrStatus"
+                android:textSize="12sp"
+                android:textColor="@color/ios_gray"
+                android:paddingTop="8dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/qrResultCard"
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:strokeWidth="1dp"
+                app:cardElevation="0dp"
+                android:layout_marginTop="12dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:id="@+id/qrOverallRisk"
+                        android:text="RISK: UNKNOWN"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:id="@+id/qrTypeLabel"
+                        android:textSize="11sp"
+                        android:textColor="@color/ios_gray"
+                        android:layout_marginTop="4dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:id="@+id/qrReason"
+                        android:textSize="13sp"
+                        android:textColor="@color/ios_label"
+                        android:lineSpacingExtra="2dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

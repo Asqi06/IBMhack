@@ -166,4 +166,48 @@ object ApiClient {
             JSONObject(txt)
         }
     }
+
+    // v1.2: Live call streaming — same as analyze but with caller context
+    suspend fun analyzeCall(text: String, backendUrl: String, callerId: String? = null, chunkId: Int? = null): AnalyzeResult = withContext(Dispatchers.IO) {
+        val url = backendUrl.trimEnd('/') + "/analyze-call"
+        val bodyJson = JSONObject().put("text", text).put("isLive", true)
+        if (callerId != null) bodyJson.put("callerId", callerId)
+        if (chunkId != null) bodyJson.put("chunkId", chunkId)
+        val body = bodyJson.toString().toRequestBody(JSON)
+        val req = Request.Builder().url(url).post(body).header("Accept", "application/json").build()
+        client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) throw RuntimeException("analyze-call ${resp.code}: ${resp.body?.string()?.take(300)}")
+            val json = JSONObject(resp.body!!.string())
+            val overall = json.optString("overallRisk", "unknown")
+            val arr = json.optJSONArray("details") ?: JSONArray()
+            val details = mutableListOf<AnalyzeDetail>()
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                details += AnalyzeDetail(
+                    source = o.optString("source"),
+                    risk = o.optString("risk").ifEmpty { o.optString("riskLevel") },
+                    category = o.optString("category"),
+                    reason = o.optString("reason"),
+                    url = o.optString("url").ifEmpty { null },
+                    number = o.optString("number").ifEmpty { null },
+                    reported = if (o.has("reported")) o.optBoolean("reported") else null,
+                    reportCount = if (o.has("reportCount")) o.optInt("reportCount") else null,
+                    riskLevel = o.optString("riskLevel").ifEmpty { null }
+                )
+            }
+            AnalyzeResult(overall, details)
+        }
+    }
+
+    // v1.2: QR / UPI shield
+    suspend fun scanQr(qrData: String, backendUrl: String): JSONObject = withContext(Dispatchers.IO) {
+        val url = backendUrl.trimEnd('/') + "/scan-qr"
+        val body = JSONObject().put("qrData", qrData).toString().toRequestBody(JSON)
+        val req = Request.Builder().url(url).post(body).build()
+        client.newCall(req).execute().use { resp ->
+            val txt = resp.body?.string() ?: "{}"
+            if (!resp.isSuccessful) throw RuntimeException("scan-qr ${resp.code}: $txt")
+            JSONObject(txt)
+        }
+    }
 }

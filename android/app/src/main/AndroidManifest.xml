@@ -2,10 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ScamShield hard constraints: no READ_SMS, no RECORD_AUDIO, no background monitoring -->
+    <!-- v1.2: opted-in live-call & QR shield — see disclosure in MainActivity -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
     <!-- dataSync is the type the bubble runs under BEFORE screen-capture consent exists.
          Android 14+ throws SecurityException if we claim mediaProjection without consent. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
@@ -15,6 +17,14 @@
     <!-- SMS Retriever API — privacy-safe, delivers SMS content that matches app hash;
          no READ_SMS needed. For scam-checking approved by brief Section 2. -->
     <uses-permission android:name="android.permission.SEND_RESPONSIVE_SMS" />
+    <!-- v1.2 live-call shield: optional, user-granted, on-device STT only text sent -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.USE_SIP" tools:node="remove" />
+    <!-- Caller-ID pre-check (CallScreeningService needs no extra permission, but telecom role helps) -->
+    <uses-permission android:name="android.permission.READ_CALL_LOG" tools:node="remove" />
+    <!-- QR / UPI scanner -->
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:allowBackup="true"
@@ -41,6 +51,22 @@
             android:name=".FloatingWidgetService"
             android:exported="false"
             android:foregroundServiceType="mediaProjection|dataSync" />
+
+        <!-- v1.2 Live Call Shield — on-device STT, only text sent to /analyze-call -->
+        <service
+            android:name=".CallShieldService"
+            android:exported="false"
+            android:foregroundServiceType="microphone|phoneCall" />
+
+        <!-- v1.2 Caller-ID pre-check — shows ledger risk before you answer -->
+        <service
+            android:name=".ScamCallScreeningService"
+            android:permission="android.permission.BIND_SCREENING_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.telecom.CallScreeningService" />
+            </intent-filter>
+        </service>
 
         <service
             android:name=".WhatsAppListenerService"
@@ -72,6 +98,11 @@
                 <data android:scheme="https" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".QrScannerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ScamShield" />
 
         <!-- Home-screen App Widget (companion to floating bubble MVP) -->
         <receiver

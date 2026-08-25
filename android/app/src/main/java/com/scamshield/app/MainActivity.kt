@@ -41,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private var smsHelper: SmsRetrieverHelper? = null
     private lateinit var bubbleStatusText: TextView
     private var whatsappStatusText: TextView? = null
+    private var callShieldStatusText: TextView? = null
 
     // Header chips driven by GET /health. Before this they were hardcoded strings that
     // claimed "LIVE" and "Granite-4" even with the backend down or Granite mocked —
@@ -185,6 +186,45 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun isCallShieldRunning(): Boolean {
+        val am = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+        @Suppress("DEPRECATION")
+        return am.getRunningServices(Integer.MAX_VALUE).any { it.service.className == CallShieldService::class.java.name }
+    }
+    private fun refreshCallShieldStatus() {
+        val view = callShieldStatusText ?: return
+        val running = isCallShieldRunning()
+        val micOk = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val phoneOk = checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        view.text = when {
+            running -> "ON ✓ — analyzing call transcripts (speaker ON for remote voice)"
+            !micOk || !phoneOk -> "OFF — needs Mic + Phone permissions"
+            else -> "OFF — tap to enable (speaker recommended)"
+        }
+        view.setTextColor(if (running) 0xFF059669.toInt() else 0xFF8E8E93.toInt())
+    }
+    private fun startCallShieldService() {
+        val backendUrl = getPrefs().getString("backendUrl", "https://scanshield-ii9n.onrender.com") ?: "https://scanshield-ii9n.onrender.com"
+        val svc = Intent(this, CallShieldService::class.java).apply {
+            action = CallShieldService.ACTION_START
+            putExtra("backendUrl", backendUrl)
+        }
+        try {
+            startForegroundService(svc)
+            Toast.makeText(this, "Call Shield ON — speaker ON recommended for detection", Toast.LENGTH_LONG).show()
+            lifecycleScope.launch { kotlinx.coroutines.delay(600); refreshCallShieldStatus() }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Could not start Call Shield: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+    private fun stopCallShieldService() {
+        try {
+            val svc = Intent(this, CallShieldService::class.java).apply { action = CallShieldService.ACTION_STOP }
+            startService(svc)
+            // service will stopSelf
+        } catch (_: Exception) {}
+    }
+
     private val overlayLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (Settings.canDrawOverlays(this)) {
             Toast.makeText(this, "Overlay granted — you can start the bubble", Toast.LENGTH_SHORT).show()
@@ -220,12 +260,21 @@ class MainActivity : AppCompatActivity() {
         // Result ignored: the bubble works either way, only the notification shortcut needs it.
     }
 
+    private val callPermLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        val mic = grants[android.Manifest.permission.RECORD_AUDIO] == true
+        val phone = grants[android.Manifest.permission.READ_PHONE_STATE] == true
+        if (mic && phone) startCallShieldService()
+        else Toast.makeText(this, "Call Shield needs Mic + Phone permissions. Grant to enable live call analysis.", Toast.LENGTH_LONG).show()
+        refreshCallShieldStatus()
+    }
+
     // Notification ID for scam SMS detection
     private val scamSmsNotificationId = 1001
 
     override fun onResume() {
         super.onResume()
         refreshBubbleStatus()
+        refreshCallShieldStatus()
         // Reflects a grant made in Settings while we were backgrounded.
         refreshWhatsAppStatus()
         // Also covers returning from Settings / from the background, so a backend started
@@ -337,6 +386,40 @@ class MainActivity : AppCompatActivity() {
             // single-use, so there is never a valid cached one to reuse.
             val helper = ScreenshotHelper(this)
             projectionLauncher.launch(helper.getProjectionIntent())
+        }
+
+        // v1.2 Advanced Shields — Call Shield + QR Shield
+        callShieldStatusText = findViewById(R.id.callShieldStatus)
+        refreshCallShieldStatus()
+        findViewById<View>(R.id.callShieldBtn)?.setOnClickListener {
+            if (isCallShieldRunning()) {
+                stopCallShieldService()
+                Toast.makeText(this, "Call Shield stopped", Toast.LENGTH_SHORT).show()
+                refreshCallShieldStatus()
+            } else {
+                // Disclosure for judges / Play Store: only text leaves device
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Live Call Shield — disclosure")
+                    .setMessage("Call Shield transcribes call audio ON-DEVICE and sends only the transcript text to ScamShield's AI for scam detection. Raw audio never leaves your phone.\n\nFor remote voice detection, put the call on speaker — Android cannot tap the call stream directly on most phones.\n\nNo recording is stored. Tap Enable to grant Mic + Phone permissions.")
+                    .setPositiveButton("Enable") { _, _ ->
+                        val backendUrl = backendInput.text.toString().trim().ifEmpty { "https://scanshield-ii9n.onrender.com" }
+                        getPrefs().edit { putString("backendUrl", backendUrl) }
+                        if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                            checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            startCallShieldService()
+                            refreshCallShieldStatus()
+                        } else {
+                            callPermLauncher.launch(arrayOf(android.Manifest.permission.RECORD_AUDIO, android.Manifest.permission.READ_PHONE_STATE))
+                        }
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+        }
+        findViewById<View>(R.id.qrShieldBtn)?.setOnClickListener {
+            val backendUrl = backendInput.text.toString().trim().ifEmpty { "https://scanshield-ii9n.onrender.com" }
+            getPrefs().edit { putString("backendUrl", backendUrl) }
+            startActivity(Intent(this, QrScannerActivity::class.java))
         }
 
         // Handle intent from FloatingWidgetService requesting permission
