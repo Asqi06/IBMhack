@@ -33,8 +33,8 @@ class ScamShieldWidgetProvider : AppWidgetProvider() {
             // Update status from prefs if available
             val prefs = context.getSharedPreferences("scamshield", Context.MODE_PRIVATE)
             val lastRisk = prefs.getString("lastOverallRisk", null)
-            if (lastRisk != null) {
-                views.setTextViewText(R.id.widgetStatus, "Last scan: ${lastRisk.uppercase()} • tap to scan again")
+            lastRisk?.let { risk ->
+                views.setTextViewText(R.id.widgetStatus, "Last scan: ${risk.uppercase()} • tap to scan again")
             }
 
             appWidgetManager.updateAppWidget(id, views)

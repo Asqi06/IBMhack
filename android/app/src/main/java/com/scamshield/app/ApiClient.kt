@@ -23,7 +23,7 @@ data class AnalyzeDetail(
     val number: String? = null,
     val reported: Boolean? = null,
     val reportCount: Int? = null,
-    val riskLevel: String? = null
+    val riskLevel: String? = null,
 )
 
 data class AnalyzeResult(

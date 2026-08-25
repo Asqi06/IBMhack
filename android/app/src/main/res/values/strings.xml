@@ -8,4 +8,8 @@
     <string name="report_as_scam">Report as Scam</string>
     <string name="scan_sms">Auto-scan incoming SMS (Retriever API)</string>
     <string name="widget_desc">ScamShield home widget — tap to open scanner. Main MVP is the floating chat-head bubble.</string>
+    <string name="risk_label">Risk: %1$s</string>
+    <string name="error">Error</string>
+    <string name="no_text_detected">No text detected on screen — try a screen with text, or use the app\'s Manual paste</string>
+    <string name="checking">● CHECKING</string>
 </resources>

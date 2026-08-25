@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import androidx.core.content.IntentCompat
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Status
@@ -19,7 +20,7 @@ import com.google.android.gms.common.api.Status
  */
 class SmsRetrieverHelper(
     private val context: Context,
-    private val onSms: (String) -> Unit
+    private val onSms: (String) -> Unit,
 ) {
     private var receiver: BroadcastReceiver? = null
 
@@ -33,7 +34,7 @@ class SmsRetrieverHelper(
             override fun onReceive(ctx: Context?, intent: Intent?) {
                 if (SmsRetriever.SMS_RETRIEVED_ACTION == intent?.action) {
                     val extras = intent.extras ?: return
-                    val status = extras.get(SmsRetriever.EXTRA_STATUS) as? Status ?: return
+                    val status = IntentCompat.getParcelableExtra(intent, SmsRetriever.EXTRA_STATUS, Status::class.java) ?: return
                     if (status.statusCode == CommonStatusCodes.SUCCESS) {
                         val msg = extras.getString(SmsRetriever.EXTRA_SMS_MESSAGE) ?: return
                         onSms(msg)

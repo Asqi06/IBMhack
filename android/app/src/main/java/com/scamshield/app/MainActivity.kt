@@ -3,8 +3,9 @@ package com.scamshield.app
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
+import androidx.core.net.toUri
+import androidx.core.content.edit
 import android.os.Bundle
 import android.provider.Settings
 import android.appwidget.AppWidgetManager
@@ -35,7 +36,7 @@ import kotlinx.coroutines.launch
  */
 class MainActivity : AppCompatActivity() {
 
-    private var mediaResultCode: Int = Activity.RESULT_CANCELED
+    private var mediaResultCode: Int = RESULT_CANCELED
     private var mediaResultData: Intent? = null
     private var smsHelper: SmsRetrieverHelper? = null
     private lateinit var bubbleStatusText: TextView
@@ -64,7 +65,7 @@ class MainActivity : AppCompatActivity() {
             val target = android.content.ComponentName(this, WhatsAppListenerService::class.java)
             flat.split(":").any { entry ->
                 val cn = android.content.ComponentName.unflattenFromString(entry)
-                cn != null && cn.packageName == target.packageName && cn.className == target.className
+                cn != null && (cn.packageName == target.packageName) && (cn.className == target.className)
             }
         } catch (_: Exception) {
             false
@@ -82,7 +83,9 @@ class MainActivity : AppCompatActivity() {
                 "WhatsApp Guard: ON ✓ — listening. No WhatsApp message scanned yet. Send yourself one (or tap Test it) to confirm."
             else -> {
                 val ago = android.text.format.DateUtils.getRelativeTimeSpanString(
-                    lastSeen, System.currentTimeMillis(), android.text.format.DateUtils.MINUTE_IN_MILLIS
+                    lastSeen,
+                    System.currentTimeMillis(),
+                    android.text.format.DateUtils.MINUTE_IN_MILLIS
                 )
                 "WhatsApp Guard: ON ✓ — working. Last WhatsApp message scanned $ago."
             }
@@ -108,7 +111,7 @@ class MainActivity : AppCompatActivity() {
         if (!::liveChip.isInitialized) return
         healthJob?.cancel()
         val backendUrl = currentBackendUrl()
-        liveChip.text = "● CHECKING"
+        liveChip.text = getString(R.string.checking)
         healthJob = lifecycleScope.launch {
             var h = ApiClient.health(backendUrl)
             if (!h.ok && !warmupAttempted) {
@@ -164,13 +167,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isBubbleServiceRunning(): Boolean {
-        val am = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val am = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
         @Suppress("DEPRECATION")
         return am.getRunningServices(Integer.MAX_VALUE).any { it.service.className == FloatingWidgetService::class.java.name }
     }
     private fun refreshBubbleStatus() {
         if (!::bubbleStatusText.isInitialized) return
-        val overlayOk = if (Build.VERSION.SDK_INT >= 23) Settings.canDrawOverlays(this) else true
+        val overlayOk = Settings.canDrawOverlays(this)
         val running = isBubbleServiceRunning()
         bubbleStatusText.text = when {
             !overlayOk -> "Bubble: overlay permission NOT granted — tap Enable Floating Widget. If denied, run: adb shell appops set $packageName SYSTEM_ALERT_WINDOW allow"
@@ -216,6 +219,9 @@ class MainActivity : AppCompatActivity() {
     private val notificationPermLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         // Result ignored: the bubble works either way, only the notification shortcut needs it.
     }
+
+    // Notification ID for scam SMS detection
+    private val scamSmsNotificationId = 1001
 
     override fun onResume() {
         super.onResume()
@@ -264,7 +270,7 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 // A few OEM builds don't expose that action — fall back to the app's settings page.
                 try {
-                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri()))
                 } catch (_: Exception) {
                     Toast.makeText(this, "Open Settings → Apps → Special access → Notification access → ScamShield", Toast.LENGTH_LONG).show()
                 }
@@ -305,8 +311,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         enableOverlayBtn.setOnClickListener {
-            if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)) {
-                val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+            if (!Settings.canDrawOverlays(this)) {
+                val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:$packageName".toUri())
                 overlayLauncher.launch(intent)
             } else {
                 Toast.makeText(this, "Overlay already granted", Toast.LENGTH_SHORT).show()
@@ -315,8 +321,10 @@ class MainActivity : AppCompatActivity() {
 
         startWidgetBtn.setOnClickListener {
             val url = backendInput.text.toString().trim().ifEmpty { "https://scanshield-ii9n.onrender.com" }
-            getPrefs().edit().putString("backendUrl", url).apply()
-            if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)) {
+            getPrefs().edit {
+            putString("backendUrl", url)
+        }
+            if (!Settings.canDrawOverlays(this)) {
                 Toast.makeText(this, "Grant overlay permission first", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -344,7 +352,9 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             val backendUrl = backendInput.text.toString().trim().ifEmpty { "https://scanshield-ii9n.onrender.com" }
-            getPrefs().edit().putString("backendUrl", backendUrl).apply()
+            getPrefs().edit {
+            putString("backendUrl", backendUrl)
+        }
             statusText.text = "Analyzing…"
             resultCard.visibility = View.GONE
             lifecycleScope.launch {
@@ -377,7 +387,7 @@ class MainActivity : AppCompatActivity() {
                     resultCard.translationY = 18f
                     resultCard.visibility = View.VISIBLE
                     resultCard.animate().alpha(1f).translationY(0f).setDuration(320).setInterpolator(android.view.animation.AccelerateDecelerateInterpolator()).start()
-                    overallRiskText.text = "Overall risk: ${res.overallRisk.uppercase()}"
+                    overallRiskText.text = getString(R.string.risk_label, res.overallRisk.uppercase())
                     overallRiskText.setTextColor(color)
                     val primary = res.details.firstOrNull { it.source == "text" }
                     reasonText.text = primary?.reason ?: ""
@@ -404,8 +414,8 @@ class MainActivity : AppCompatActivity() {
                                     reportBtn.visibility = View.GONE
                                     // Ledger grew — let the header's entry count show it.
                                     refreshBackendHealth()
-                                } catch (e: Exception) {
-                                    Toast.makeText(this@MainActivity, "Report failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                } catch (_: Exception) {
+                                    Toast.makeText(this@MainActivity, "Report failed", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         }
@@ -413,7 +423,8 @@ class MainActivity : AppCompatActivity() {
                         reportBtn.visibility = View.GONE
                     }
                 } catch (e: Exception) {
-                    statusText.text = "Failed: ${e.message}"
+                    val msg = e.message ?: "Analyze failed"
+                    statusText.text = getString(R.string.risk_label, msg)
                     Toast.makeText(this@MainActivity, "Analyze failed — is backend running at $backendUrl ?", Toast.LENGTH_LONG).show()
                 }
             }
@@ -425,7 +436,7 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 try {
                     val res = ApiClient.analyze(smsText, backendUrl)
-                    // Show in same card
+                    // Show in same card (when app is foreground)
                     resultCard.visibility = View.VISIBLE
                     val color = when (res.overallRisk.lowercase()) {
                         "high" -> getColor(R.color.scam_red)
@@ -436,12 +447,14 @@ class MainActivity : AppCompatActivity() {
                     overallRiskText.text = "SMS scan — risk: ${res.overallRisk.uppercase()}"
                     overallRiskText.setTextColor(color)
                     reasonText.text = res.details.firstOrNull { it.source == "text" }?.reason ?: ""
-                    detailsText.text = "SMS: ${smsText.take(120)}\n" + res.details.joinToString("\n") { d -> "• ${d.source}: ${d.risk} — ${d.reason ?: d.riskLevel}" }
+                    detailsText.text = "SMS: ${smsText.take(120)}\n" + res.details.joinToString("\n") { d -> "• ${d.source}: ${d.risk} — ${d.reason}" }
                     persistLastRisk(res.overallRisk)
                     if (res.overallRisk == "high" || res.overallRisk == "medium") {
                         reportBtn.visibility = View.VISIBLE
                         // Log + advise dialog for dangerous SMS
                         logDangerAndAdvise(smsText, res, "sms")
+                        // **NEW**: Show system notification with Delete/Block/Report
+                        showScamSmsNotification(smsText, res)
                     }
                     // Also toast
                     Toast.makeText(this@MainActivity, "SMS scanned: ${res.overallRisk}", Toast.LENGTH_LONG).show()
@@ -449,6 +462,64 @@ class MainActivity : AppCompatActivity() {
             }
         }
         smsHelper?.start()
+
+        // Handle SMS actions from system notification (Delete/Block/Report)
+        val intent = intent
+        if (intent != null) {
+            val action = intent.getStringExtra("action")
+            val smsText = intent.getStringExtra("sms_text")
+            val targetNumber = intent.getStringExtra("target_number")
+            when (action) {
+                "delete_sms" -> {
+                    // Remove from log and dismiss
+                    if (smsText != null) {
+                        lifecycleScope.launch {
+                            val db = AppDatabase.get(this@MainActivity)
+                            // Delete any recent SMS-related log entries
+                            val logs = db.scanLogDao().getAll()
+                            val recentSmsLog = logs.firstOrNull { it.source == "sms" }
+                            recentSmsLog?.let {
+                                db.scanLogDao().delete(it.id)
+                            }
+                        }
+                        Toast.makeText(this@MainActivity, "SMS removal requested", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                "block_sms" -> {
+                    // Report to ledger and offer to open blocked numbers
+                    if (smsText != null && targetNumber != null) {
+                        lifecycleScope.launch {
+                            try {
+                                val cat = "OTP scam" // default category
+                                ApiClient.report(targetNumber, cat, currentBackendUrl())
+                                Toast.makeText(this@MainActivity, "Reported $targetNumber to ledger ✓", Toast.LENGTH_SHORT).show()
+                                refreshBackendHealth()
+                            } catch (e: Exception) {
+                                Toast.makeText(this@MainActivity, "Ledger report failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        // Open blocked numbers screen
+                        val tm = getSystemService(Context.TELECOM_SERVICE) as android.telecom.TelecomManager
+                        startActivity(tm.createManageBlockedNumbersIntent())
+                    }
+                }
+                "report_sms" -> {
+                    // Report to ledger
+                    if (smsText != null && targetNumber != null) {
+                        lifecycleScope.launch {
+                            try {
+                                val cat = "OTP scam"
+                                ApiClient.report(targetNumber, cat, currentBackendUrl())
+                                Toast.makeText(this@MainActivity, "Reported $targetNumber to ledger ✓", Toast.LENGTH_SHORT).show()
+                                refreshBackendHealth()
+                            } catch (e: Exception) {
+                                Toast.makeText(this@MainActivity, "Ledger report failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         // Activity log — RecyclerView with Room
         val logRecycler = findViewById<RecyclerView>(R.id.logRecycler)
@@ -660,6 +731,65 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Show a system notification when a scam SMS is detected.
+     * The notification provides Delete/Block/Report actions.
+     * Only shown when risk is high/medium; low risk is handled in UI only.
+     */
+    private fun showScamSmsNotification(smsText: String, res: AnalyzeResult) {
+        val primary = res.details.firstOrNull { it.source == "text" }
+        val target = primary?.number ?: primary?.url ?: WhatsAppListenerService.extractTarget(smsText, null)
+        val riskLevel = res.overallRisk.uppercase()
+        val reason = primary?.reason ?: "Possible scam detected"
+
+        val deletePendingIntent = android.app.PendingIntent.getActivity(
+            this,
+            0,
+            android.content.Intent(this, MainActivity::class.java).apply {
+                putExtra("action", "delete_sms")
+                putExtra("sms_text", smsText)
+            },
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val blockPendingIntent = android.app.PendingIntent.getActivity(
+            this,
+            1,
+            android.content.Intent(this, MainActivity::class.java).apply {
+                putExtra("action", "block_sms")
+                putExtra("sms_text", smsText)
+                putExtra("target_number", target)
+            },
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val reportPendingIntent = android.app.PendingIntent.getActivity(
+            this,
+            2,
+            android.content.Intent(this, MainActivity::class.java).apply {
+                putExtra("action", "report_sms")
+                putExtra("sms_text", smsText)
+                putExtra("target_number", target)
+            },
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = androidx.core.app.NotificationCompat.Builder(this, "scam_shield_sms")
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("🛡️ ScamShield: Possible Scam SMS")
+            .setContentText("$riskLevel: $reason")
+            .setStyle(androidx.core.app.NotificationCompat.BigTextStyle()
+                .bigText("Message: ${smsText.take(200)}\n\nCategory: ${primary?.category ?: "phishing link"}"))
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .addAction(android.R.drawable.ic_menu_delete, "Delete", deletePendingIntent)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Block", blockPendingIntent)
+            .addAction(android.R.drawable.ic_menu_info_details, "Report", reportPendingIntent)
+
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        manager.notify(scamSmsNotificationId, builder.build())
+    }
+
     /** Starts (or refreshes) the bubble without any screen-capture token — bubble shows immediately. */
     private fun startBubbleService() {
         val backendUrl = getPrefs().getString("backendUrl", "https://scanshield-ii9n.onrender.com") ?: "https://scanshield-ii9n.onrender.com"
@@ -667,7 +797,7 @@ class MainActivity : AppCompatActivity() {
             putExtra(FloatingWidgetService.EXTRA_BACKEND_URL, backendUrl)
         }
         try {
-            if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc) else startService(svc)
+            startForegroundService(svc)
         } catch (e: Exception) {
             Toast.makeText(this, "Could not start bubble: ${e.message}", Toast.LENGTH_LONG).show()
         }
@@ -682,14 +812,14 @@ class MainActivity : AppCompatActivity() {
             putExtra(FloatingWidgetService.EXTRA_BACKEND_URL, backendUrl)
         }
         try {
-            if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc) else startService(svc)
+            startForegroundService(svc)
         } catch (e: Exception) {
             Toast.makeText(this, "Could not pass screen-capture permission: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= 33 &&
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
         ) {
             notificationPermLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)

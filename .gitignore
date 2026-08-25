@@ -24,4 +24,13 @@ android/.gradle/
 android/build/
 android/app/build/
 android/local.properties
+android/.idea/
+android/gradle-8.7-bin.zip
+android/gradle-8.7/
+fix_pptx.py
+replace_text.py
+check_ppt.py
+check_ppt2.py
+compile_ppt.py
+True
 extension/*.zip

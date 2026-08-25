@@ -16,6 +16,6 @@ object OcrHelper {
     suspend fun extractText(bitmap: Bitmap): String {
         val image = InputImage.fromBitmap(bitmap, 0)
         val result = recognizer.process(image).await()
-        return result.text ?: ""
+        return result.text
     }
 }

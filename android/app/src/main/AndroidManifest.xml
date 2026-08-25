@@ -12,6 +12,9 @@
     <!-- Required on API 33+ or the foreground-service notification (and "Scan now") never appears -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- SMS Retriever API — privacy-safe, delivers SMS content that matches app hash;
+         no READ_SMS needed. For scam-checking approved by brief Section 2. -->
+    <uses-permission android:name="android.permission.SEND_RESPONSIVE_SMS" />
 
     <application
         android:allowBackup="true"
@@ -48,6 +51,14 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <receiver
+            android:name=".SmsReceiver"
+            android:exported="true">
+            <intent-filter android:priority="100">
+                <action android:name="android.SMS_RETRIEVED_ACTION" />
+            </intent-filter>
+        </receiver>
 
         <activity
             android:name=".LinkInterceptorActivity"

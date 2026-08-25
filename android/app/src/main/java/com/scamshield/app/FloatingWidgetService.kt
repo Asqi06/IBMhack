@@ -5,12 +5,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
-import android.graphics.Color
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.IBinder
@@ -30,6 +28,8 @@ import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.IntentCompat
+import androidx.core.content.edit
+import androidx.core.graphics.toColorInt
 import kotlinx.coroutines.*
 
 /**
@@ -56,9 +56,6 @@ class FloatingWidgetService : Service() {
         /** Separate high-importance channel: the ongoing bubble notice must stay silent, an alert must not. */
         private const val ALERT_CHANNEL_ID = "scamshield_alert"
         private const val NOTIF_ID = 1001
-
-        /** Wording reused wherever we describe the armed-but-idle state, so the UI never overclaims. */
-        const val IDLE_TEXT = "Idle — nothing is captured until you tap ◈ SCAN"
     }
 
     private var windowManager: WindowManager? = null
@@ -82,7 +79,7 @@ class FloatingWidgetService : Service() {
         // consent token exists — and on Android 14+ claiming the mediaProjection FGS type
         // without consent throws SecurityException.
         createChannel()
-        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         screenshotHelper = ScreenshotHelper(this)
     }
 
@@ -101,21 +98,34 @@ class FloatingWidgetService : Service() {
      * NOT be mistaken for success by callers that are about to touch MediaProjection APIs.
      * Returns false only if every attempt failed (caller must stopSelf to avoid the watchdog).
      */
-    private fun promoteToForeground(text: String, withProjection: Boolean): Boolean {
+    private fun promoteToForeground(withProjection: Boolean): Boolean {
+        val text = "ScamShield bubble active — tap ◈ to scan"
         val notif = buildNotification(text)
         val attempts = if (withProjection) {
-            listOf(
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
-                0
-            )
+            if (Build.VERSION.SDK_INT >= 29) {
+                listOf(
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+                    0,
+                )
+            } else {
+                listOf(0)
+            }
         } else {
-            listOf(ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC, 0)
+            if (Build.VERSION.SDK_INT >= 29) {
+                listOf(ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC, 0)
+            } else {
+                listOf(0)
+            }
         }
         for (type in attempts) {
             try {
                 ServiceCompat.startForeground(this, NOTIF_ID, notif, type)
-                hasProjectionFgsType = type == ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                hasProjectionFgsType = if (Build.VERSION.SDK_INT >= 29) {
+                    type == ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                } else {
+                    false
+                }
                 if (withProjection && !hasProjectionFgsType) {
                     // Foreground, so no watchdog kill — but capture cannot work under this type.
                     android.util.Log.w("ScamShield", "Fell back to FGS type $type; screen capture will not work")
@@ -129,13 +139,13 @@ class FloatingWidgetService : Service() {
         return false
     }
 
-    private fun hasProjectionToken() = mediaResultCode == Activity.RESULT_OK && mediaResultData != null
+    private fun hasProjectionToken() = (mediaResultCode == Activity.RESULT_OK) && (mediaResultData != null)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Read any new consent token BEFORE promoting, so we can claim the right FGS type.
         // Only overwrite if the intent actually carries it (ACTION_SCAN / bring-to-front must not clear it).
         var freshToken = false
-        if (intent != null && intent.hasExtra(EXTRA_RESULT_CODE)) {
+        if ((intent != null) && intent.hasExtra(EXTRA_RESULT_CODE)) {
             mediaResultCode = intent.getIntExtra(EXTRA_RESULT_CODE, Activity.RESULT_CANCELED)
             mediaResultData = IntentCompat.getParcelableExtra(intent, EXTRA_RESULT_DATA, Intent::class.java)
             freshToken = hasProjectionToken()
@@ -144,10 +154,12 @@ class FloatingWidgetService : Service() {
         if (backendUrl == "https://scanshield-ii9n.onrender.com") {
             getPrefs().getString("backendUrl", null)?.let { backendUrl = it }
         }
-        getPrefs().edit().putString("backendUrl", backendUrl).apply()
+        getPrefs().edit {
+            putString("backendUrl", backendUrl)
+        }
 
         // Must happen within ~5s of startForegroundService() or the platform kills us.
-        if (!promoteToForeground("ScamShield bubble active — tap ◈ to scan", hasProjectionToken())) {
+        if (!promoteToForeground(hasProjectionToken())) {
             stopSelf()
             return START_NOT_STICKY
         }
@@ -210,11 +222,11 @@ class FloatingWidgetService : Service() {
     }
 
     private fun getPrefs(): SharedPreferences =
-        getSharedPreferences("scamshield", Context.MODE_PRIVATE)
+        getSharedPreferences("scamshield", MODE_PRIVATE)
 
     private fun showWidgetIfNeeded() {
         // Overlay permission can be revoked at any time; addView would throw BadTokenException.
-        if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)) {
+        if (!Settings.canDrawOverlays(this)) {
             Toast.makeText(this, "Enable \"Display over other apps\" for ScamShield, then start the bubble again", Toast.LENGTH_LONG).show()
             updateNotification("Overlay permission missing — open ScamShield to enable it")
             return
@@ -257,8 +269,7 @@ class FloatingWidgetService : Service() {
             val view = inflater.inflate(R.layout.view_floating_widget, null, false)
             val bubble = view.findViewById<View>(R.id.bubble)
 
-            val type = if (Build.VERSION.SDK_INT >= 26) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else WindowManager.LayoutParams.TYPE_PHONE
+            val type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
             val params = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -267,7 +278,7 @@ class FloatingWidgetService : Service() {
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                         WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                PixelFormat.TRANSLUCENT
+                PixelFormat.TRANSLUCENT,
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
                 x = 24
@@ -336,7 +347,10 @@ class FloatingWidgetService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (!moved) onBubbleTap()
+                    if (!moved) {
+                        bubble.performClick()
+                        onBubbleTap()
+                    }
                     true
                 }
                 else -> false
@@ -346,7 +360,7 @@ class FloatingWidgetService : Service() {
 
     private fun updateNotification(text: String) {
         try {
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             nm.notify(NOTIF_ID, buildNotification(text))
         } catch (_: Exception) {}
     }
@@ -421,7 +435,7 @@ class FloatingWidgetService : Service() {
         }
 
         isScanning = true
-        updateBubbleScanning(true)
+        updateBubbleScanning(scanning = true)
         updateNotification("ScamShield scanning…")
         scope.launch {
             // Hide our own overlay so the bubble and result card are not part of the captured
@@ -437,7 +451,9 @@ class FloatingWidgetService : Service() {
                 bitmap.recycle()
                 overlay?.visibility = View.VISIBLE
                 if (text.isBlank()) {
-                    showResult("low", "No text detected on screen — try a screen with text, or use the app's Manual paste", emptyList())
+                    showResult("low", emptyList())
+                    floatView?.findViewById<android.widget.TextView>(R.id.floatReason)?.text =
+                        getString(R.string.no_text_detected)
                     return@launch
                 }
                 // Send TEXT ONLY to backend
@@ -445,7 +461,7 @@ class FloatingWidgetService : Service() {
                 // A detection that is not recorded is a detection the user cannot act on later:
                 // persist every high/medium verdict to the activity log and raise a warning, the
                 // same way the manual/SMS/WhatsApp paths already do.
-                if (result.overallRisk.equals("high", true) || result.overallRisk.equals("medium", true)) {
+                if (result.overallRisk.equals("high", ignoreCase = true) || result.overallRisk.equals("medium", ignoreCase = true)) {
                     logDangerAndWarn(text, result)
                 }
                 showResult(result.overallRisk, result.details)
@@ -478,7 +494,7 @@ class FloatingWidgetService : Service() {
                 updateNotification("ScamShield: $friendly")
             } finally {
                 isScanning = false
-                updateBubbleScanning(false)
+                updateBubbleScanning(scanning = false)
                 overlay?.visibility = View.VISIBLE
                 updateNotification("ScamShield bubble active — tap ◈ to scan. Not visible? Pull down this notification and tap Scan now.")
             }
@@ -493,7 +509,7 @@ class FloatingWidgetService : Service() {
     private fun currentDisplayMetrics(): DisplayMetrics {
         val metrics = DisplayMetrics()
         try {
-            val dm = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            val dm = getSystemService(DISPLAY_SERVICE) as DisplayManager
             val display = dm.getDisplay(Display.DEFAULT_DISPLAY)
             @Suppress("DEPRECATION")
             display.getRealMetrics(metrics)
@@ -545,7 +561,7 @@ class FloatingWidgetService : Service() {
             reason = reason,
             snippet = text.take(120),
             fullText = text,
-            source = "bubble"
+            source = "bubble",
         )
         scope.launch {
             try {
@@ -564,12 +580,10 @@ class FloatingWidgetService : Service() {
      */
     private fun raiseDangerAlert(overallRisk: String, category: String, reason: String) {
         try {
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            if (Build.VERSION.SDK_INT >= 26) {
-                val ch = NotificationChannel(ALERT_CHANNEL_ID, "ScamShield Alerts", NotificationManager.IMPORTANCE_HIGH)
-                ch.description = "Warnings for dangerous messages found on screen"
-                nm.createNotificationChannel(ch)
-            }
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            val ch = NotificationChannel(ALERT_CHANNEL_ID, "ScamShield Alerts", NotificationManager.IMPORTANCE_HIGH)
+            ch.description = "Warnings for dangerous messages found on screen"
+            nm.createNotificationChannel(ch)
             val open = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
@@ -593,18 +607,6 @@ class FloatingWidgetService : Service() {
         }
     }
 
-    private fun showResult(overallRisk: String, reason: String, details: List<AnalyzeDetail>) {
-        if (floatView == null) {
-            // No overlay — deliver the reason directly, since the 2-arg path can only see `details`
-            // (which is empty for cases like "no text detected").
-            notifyResult("Risk: ${overallRisk.uppercase()}", reason)
-            return
-        }
-        showResult(overallRisk, details)
-        // Update reason view separately
-        floatView?.findViewById<android.widget.TextView>(R.id.floatReason)?.text = reason
-    }
-
     private fun showResult(overallRisk: String, details: List<AnalyzeDetail>) {
         // No overlay (inflate/attach failed, or overlay permission revoked)? Scanning still worked,
         // so deliver the verdict through the notification rather than dropping it silently.
@@ -622,11 +624,11 @@ class FloatingWidgetService : Service() {
         val primary = details.firstOrNull { it.source == "text" }
         val risk = overallRisk.lowercase()
         val color = when (risk) {
-            "high" -> Color.parseColor("#E53935")
-            "medium" -> Color.parseColor("#FB8C00")
-            else -> Color.parseColor("#43A047")
+            "high" -> "#E53935".toColorInt()
+            "medium" -> "#FB8C00".toColorInt()
+            else -> "#43A047".toColorInt()
         }
-        overallView.text = "Risk: ${overallRisk.uppercase()}"
+        overallView.text = getString(R.string.risk_label, overallRisk.uppercase())
         overallView.setTextColor(color)
         // Card stroke matches risk
         (card as? com.google.android.material.card.MaterialCardView)?.strokeColor = color
@@ -699,8 +701,8 @@ class FloatingWidgetService : Service() {
         val overallView = floatView!!.findViewById<android.widget.TextView>(R.id.floatOverallRisk)
         val reasonView = floatView!!.findViewById<android.widget.TextView>(R.id.floatReason)
         val detailsView = floatView!!.findViewById<android.widget.TextView>(R.id.floatDetails)
-        overallView.text = "Error"
-        overallView.setTextColor(Color.parseColor("#E53935"))
+        overallView.text = getString(R.string.error)
+        overallView.setTextColor("#E53935".toColorInt())
         reasonView.text = msg
         detailsView.text = ""
         floatView!!.findViewById<View>(R.id.floatReportBtn).visibility = View.GONE
@@ -709,14 +711,12 @@ class FloatingWidgetService : Service() {
     }
 
     private fun createChannel() {
-        if (Build.VERSION.SDK_INT >= 26) {
-            val ch = NotificationChannel(CHANNEL_ID, "ScamShield", NotificationManager.IMPORTANCE_LOW)
-            ch.description = "ScamShield • Tap to scan"
-            ch.enableLights(false)
-            ch.enableVibration(false)
-            ch.setShowBadge(false)
-            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(ch)
-        }
+        val ch = NotificationChannel(CHANNEL_ID, "ScamShield", NotificationManager.IMPORTANCE_LOW)
+        ch.description = "ScamShield • Tap to scan"
+        ch.enableLights(false)
+        ch.enableVibration(false)
+        ch.setShowBadge(false)
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(ch)
     }
 
     private fun buildNotification(text: String): Notification {
